@@ -274,8 +274,9 @@ scheme, so the `Release:` field + changelog `-N` are documentation only.
 
 - [x] repo on GitHub, scmsync set
 - [x] webhook root-caused; two-webhook fix in docs + obs-bootstrap.sh
-- [x] r5 built: 1 E / 0 W; r6 written to reach 0 E / 0 W (non-SUID sandbox)
-- [ ] confirm r6 rpmlint 0/0 on OBS
+- [x] **r6 built: 0 E / 0 W / 0 badness** (`lp160.11.1`). rpmlint clean,
+      from 17 E / 27 W. Done.
+- [ ] smoke-test r6 on a real desktop (non-SUID sandbox actually launches)
 - [ ] **webhook still not reliably firing.** 12228 (workflow) fired once
       for 3b944bd (22:19 UTC) then stopped; 12231 (runservice) never fired
       from a push. `trigger_services` push step added to workflows.yml

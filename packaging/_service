@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<!--
+  The 166 MB upstream .deb is NOT stored in git. OBS fetches it at source-
+  service time with download_url; the spec verifies its SHA256 in %prep.
+  scripts/bump-version.sh rewrites the URL below (and the checksum + Version
+  in the spec) when Anthropic publishes a new build.
+-->
+<services>
+  <service name="download_url">
+    <param name="url">https://downloads.claude.ai/claude-desktop/apt/stable/pool/main/c/claude-desktop/claude-desktop_1.40609.1_amd64.deb</param>
+    <param name="filename">claude-desktop_1.40609.1_amd64.deb</param>
+  </service>
+</services>

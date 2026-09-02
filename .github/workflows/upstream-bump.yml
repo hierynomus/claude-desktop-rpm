@@ -1,0 +1,59 @@
+name: upstream version bump
+
+# Checks Anthropic's apt index for a newer claude-desktop and, if there is
+# one, opens a PR that bumps packaging/. Merging that PR triggers the OBS
+# scmsync re-sync + rebuild (see .obs/workflows.yml and docs/obs-setup.md).
+#
+# No OBS credentials are needed here: the checksum comes from the apt index,
+# and OBS reacts to the git push on its own.
+
+on:
+  schedule:
+    - cron: "17 6 * * *"   # daily, 06:17 UTC
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Pin a specific version (default: newest in the index)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run bump script
+        id: bump
+        run: |
+          set -euo pipefail
+          out=$(scripts/bump-version.sh ${{ inputs.version }})
+          echo "$out"
+          if echo "$out" | grep -q '^bumped '; then
+            new=$(echo "$out" | sed -n 's/^bumped .* -> //p')
+            echo "changed=true"     >> "$GITHUB_OUTPUT"
+            echo "version=$new"     >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false"    >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open pull request
+        if: steps.bump.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: bump/claude-desktop-${{ steps.bump.outputs.version }}
+          commit-message: "claude-desktop ${{ steps.bump.outputs.version }}: update to upstream release"
+          title: "claude-desktop ${{ steps.bump.outputs.version }}"
+          body: |
+            Automated bump from Anthropic's apt index.
+
+            - `Version` and `%global deb_sha256` updated in `packaging/claude-desktop.spec`
+            - `download_url` URL updated in `packaging/_service`
+            - SHA256 is verified in `%prep` at build time
+
+            The OBS PR build (`home:hierynomus:ci`) will validate this before merge.
+          labels: automated, upstream-bump

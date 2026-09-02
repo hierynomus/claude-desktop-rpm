@@ -1,0 +1,22 @@
+# OBS SCM/CI workflow integration.
+# https://openbuildservice.org/help/manuals/obs-user-guide/cha.obs.scm_ci_workflow_integration.html
+#
+# One-time setup (see docs/obs-setup.md):
+#   - home:hierynomus/claude-desktop has <scmsync> pointing at this repo
+#   - an OBS workflow token exists (osc token --create --operation workflow
+#     --scm-token <github-PAT>)
+#   - a GitHub webhook posts to
+#     https://build.opensuse.org/trigger/workflow?id=<token-id>
+#   - target project home:hierynomus:ci exists (branch target for PRs)
+#
+# Push to main is handled by scmsync itself: OBS re-syncs the repo and
+# rebuilds home:hierynomus/claude-desktop. No step needed for that here.
+
+pull_request:
+  steps:
+    - branch_package:
+        source_project: home:hierynomus
+        source_package: claude-desktop
+        target_project: home:hierynomus:ci
+  filters:
+    event: pull_request

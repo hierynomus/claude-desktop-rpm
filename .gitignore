@@ -1,0 +1,10 @@
+# local build output
+/dist/
+# stray downloaded payloads
+*.deb
+# rpmbuild scratch, if run in-tree
+/BUILD/
+/BUILDROOT/
+/RPMS/
+/SRPMS/
+/SOURCES/

@@ -200,12 +200,58 @@ living with the one non-fatal error.
 from 17E / 27W originally. Needs an actual OBS rebuild to confirm the
 `%fdupes` + spelling changes (no `rpmbuild` on odin to pre-check).
 
+---
+
+# 2026-09-02 (night): scmsync push webhook + r4/r5 rpmlint
+
+Repo pushed to github.com/hierynomus/claude-desktop-rpm. scmsync set on the
+package (`?subdir=packaging#main`). First sync grabbed `d586500` (r3) and
+then **stopped** — pushes weren't rebuilding.
+
+## The webhook bug
+
+The GitHub webhook was pointed at `/trigger/workflow?id=<workflow-token>`.
+OBS response to the push:
+
+  > No steps were triggered for the workflow 'pull_request': the received
+  > event matched no filter
+
+`/trigger/workflow` **only** runs `.obs/workflows.yml` steps. Our file has
+only a `pull_request` workflow, so a push to `main` did literally nothing -
+the scmsync package never re-synced (`_scmsync.obsinfo` stuck on d586500).
+obs-scm-bridge does not poll on its own here.
+
+**Fix:** a *second* token + webhook.
+- `osc token --create --operation runservice home:hierynomus claude-desktop`
+  -> webhook `/trigger/webhook?id=<id>`, event Pushes. This re-pulls git.
+- keep the workflow token/webhook for Pull requests only.
+- manual equivalent: `osc service remoterun home:hierynomus claude-desktop`
+  (used it to unblock; r4 then synced + built immediately).
+
+docs/obs-setup.md and scripts/obs-bootstrap.sh updated for the two-webhook
+setup. runservice token created: id 12231. workflow token: id 12228.
+
+## r4 rpmlint (OBS, rpmlint 2.7): 2 E / 4 W / 11 badness
+
+Down from 17 E / 27 W / 125. rpmlintrc filtered 36. Remaining:
+
+- `permissions-file-unauthorized` (E, badness 10) - the known residual.
+- `invalid-desktopfile` (E) - upstream ships `Categories=Utility;Development;`
+  (two main categories). rpmlint 2.10 locally didn't flag it, 2.7 on OBS
+  does. r5: `sed` it to `Categories=Utility;` in %install +
+  `desktop-file-validate` (BuildRequires: desktop-file-utils).
+- `macro-in-comment %prep` / `%fdupes`, `macro-in-%changelog %prep` (W x3) -
+  bare `%word` in our own comments/changelog. r5: escaped to `%%word`.
+- `no-%check-section` (W) - no upstream testsuite. r5: filtered in rpmlintrc.
+
+Projected r5: **1 E (permissions-file-unauthorized) / 0 W.**
+
 ## Status
 
-- [x] clean tree written; `bump-version.sh` tested (no-op + forward + downgrade guard)
-- [x] rpmlint analysed against the real r2 build; r4 spec + rpmlintrc written
-- [ ] `git init` + push to github.com/hierynomus/claude-desktop-rpm
-- [ ] `scripts/obs-bootstrap.sh` (needs osc creds)
-- [ ] workflow token + GitHub webhook (docs/obs-setup.md steps 2-4)
-- [ ] confirm r4 rpmlint on the first scmsync build (`osc rpmlintlog openSUSE_Leap_16.0 x86_64`)
-- [ ] confirm PR build path
+- [x] repo on GitHub, scmsync set, first builds succeeding
+- [x] webhook root-caused; two-webhook fix documented; runservice token made
+- [x] r4 built (17->2 E); r5 written (desktopfile + macro-escape + filter)
+- [ ] add the runservice webhook on GitHub (docs/obs-setup.md step 4a)
+- [ ] push r5, confirm 1 E / 0 W
+- [ ] confirm PR build path (open a throwaway PR)
+- [ ] GITHUB_TOKEN / PAT for the workflow token + upstream-bump action

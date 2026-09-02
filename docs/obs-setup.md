@@ -17,8 +17,10 @@ OBS rebuilds the signed RPM.
   from `packaging/`) drives **pull-request builds**: each PR is branched
   into `home:hierynomus:ci`, built, and the result is reported back onto
   the PR as a commit status.
-- **Push to `main`** needs no workflow step: OBS re-syncs the scmsync
-  mirror and rebuilds `home:hierynomus/claude-desktop` on its own.
+- **Push to `main`** is handled by a second webhook to a `runservice`
+  token (`/trigger/webhook`), which makes OBS re-pull git and rebuild
+  `home:hierynomus/claude-desktop`. `.obs/workflows.yml` is *not* consulted
+  for pushes, so the workflow webhook alone does nothing on a push.
 - **`.github/workflows/upstream-bump.yml`** opens a bump PR when Anthropic
   ships a new version. It needs no OBS credentials.
 
@@ -57,36 +59,46 @@ Fine-grained token on `hierynomus/claude-desktop-rpm`:
 - **Contents:** read-only
 - **Commit statuses:** read/write  (so OBS can report PR build results)
 
-### 3. OBS workflow token
+### 3. Two OBS tokens
+
+They do different jobs and **you need both**:
 
 ```
+# a) syncs the scmsync package + rebuilds on push to main
+osc token --create --operation runservice home:hierynomus claude-desktop
+
+# b) runs .obs/workflows.yml (the PR builds); feed it the GitHub PAT
 osc token --create --operation workflow --scm-token <GITHUB_PAT>
 ```
 
-Prints a token **id** and **secret**. The id goes in the webhook URL; the
-secret is stored server-side with the token.
+Each prints an **id** and a **secret string**.
 
-(Also create a personal token under OBS *Profile → Tokens* if the workflow
-token flow asks for one for status reporting — recent OBS versions fold
-this into the `--scm-token` above.)
+Why two: `/trigger/workflow` only executes `.obs/workflows.yml` steps. A
+push to `main` matches no workflow there (the file only has a
+`pull_request` workflow), so it would do nothing — the scmsync package
+would never re-sync. The `runservice` token on `/trigger/webhook` is what
+re-pulls git and rebuilds. (`osc service remoterun home:hierynomus
+claude-desktop` is the manual equivalent — handy to force a sync.)
 
-### 4. GitHub webhook
+### 4. Two GitHub webhooks
 
-Repo **Settings → Webhooks → Add webhook**:
+Repo **Settings → Webhooks → Add webhook**, twice:
 
-| field | value |
-|---|---|
-| Payload URL | `https://build.opensuse.org/trigger/workflow?id=<TOKEN_ID>` |
-| Content type | `application/json` |
-| SSL verification | enabled |
-| Events | *Let me select* → **Pushes** and **Pull requests** |
+| # | Payload URL | Secret | Events |
+|---|---|---|---|
+| 1 | `https://build.opensuse.org/trigger/webhook?id=<RUNSERVICE_TOKEN_ID>` | runservice token string | **Pushes** |
+| 2 | `https://build.opensuse.org/trigger/workflow?id=<WORKFLOW_TOKEN_ID>` | workflow token string | **Pull requests** |
+
+Both: content type `application/json`, SSL verification on.
 
 ### 5. Verify
 
 - Push a trivial commit to `main` → `osc results home:hierynomus claude-desktop`
-  should show a rebuild.
+  shows a rebuild; `osc api /source/home:hierynomus/claude-desktop/_scmsync.obsinfo`
+  shows the new commit sha.
 - Open a throwaway PR → an OBS check appears on it, building in
   `home:hierynomus:ci`.
+- Stuck? `osc service remoterun home:hierynomus claude-desktop` forces a sync.
 
 ## Migrating from the old osc-committed package
 

@@ -20,6 +20,9 @@ addFilter(r"missing-call-to-setgroups-before-setuid .*/(chrome-sandbox|pty\.node
 # Chromium's network stack.
 addFilter(r"binary-or-shlib-calls-gethostbyname .*/claude-desktop")
 
+# No upstream testsuite to run in the build root - repackaged prebuilt app.
+addFilter(r"no-%check-section")
+
 # --- deliberate packaging choice -------------------------------------------
 # The explicit lib Requires are load-bearing: 6 of the 8 are not NEEDED of
 # any shipped ELF, so rpm's auto-dep scan misses them and a minimal install

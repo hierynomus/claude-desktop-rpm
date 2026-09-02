@@ -13,13 +13,13 @@
 
 # SHA256 of the upstream .deb, taken from Anthropic's apt Packages index
 # (dists/stable/main/binary-amd64/Packages, field "SHA256:"). Bumped in
-# lockstep with Version by scripts/bump-version.sh. Verified in %prep so a
+# lockstep with Version by scripts/bump-version.sh. Verified in %%prep so a
 # changed-out-from-under-us payload fails the build instead of shipping.
 %global deb_sha256 80182e8511c6bbee6de26c7ee225fbd2a9aba2274ef1405a1d89cd8fe7a380dc
 
 Name:           claude-desktop
 Version:        1.40609.1
-Release:        4
+Release:        5
 Summary:        Desktop application for Claude (Chat, Cowork, Code)
 License:        MIT
 URL:            https://claude.ai
@@ -34,6 +34,7 @@ ExclusiveArch:  x86_64
 # (permctl/chkstat) applies and re-applies the mode at install time.
 PreReq:         permissions
 BuildRequires:  fdupes
+BuildRequires:  desktop-file-utils
 
 # Mapping of the .deb's Depends onto openSUSE Leap 16 packages:
 #   libgtk-3-0        -> libgtk-3-0
@@ -104,11 +105,17 @@ ln -sf ../lib/claude-desktop/claude-desktop %{buildroot}/usr/bin/claude-desktop
 install -dm 0755 %{buildroot}/usr/share/applications
 cp -a payload/usr/share/applications/com.anthropic.Claude.desktop \
     %{buildroot}/usr/share/applications/
+# Upstream ships Categories=Utility;Development; - two "main" categories,
+# which desktop-file-validate/rpmlint reject (the entry would show up twice
+# in the menu). Collapse to a single main category.
+sed -i 's/^Categories=.*/Categories=Utility;/' \
+    %{buildroot}/usr/share/applications/com.anthropic.Claude.desktop
+desktop-file-validate %{buildroot}/usr/share/applications/com.anthropic.Claude.desktop
 install -dm 0755 %{buildroot}/usr/share/icons
 cp -a payload/usr/share/icons/hicolor %{buildroot}/usr/share/icons/
 
 # The Electron payload ships many byte-identical files (icon light/dark
-# pairs, content-hashed JS chunks); hardlink them. Must be the %fdupes
+# pairs, content-hashed JS chunks); hardlink them. Must be the %%fdupes
 # macro, not bare `fdupes`: the macro recurses, plain fdupes does not.
 %fdupes %{buildroot}
 
@@ -151,6 +158,12 @@ gtk-update-icon-cache -q /usr/share/icons 2>/dev/null || :
 update-desktop-database -q /usr/share/applications 2>/dev/null || :
 
 %changelog
+* Wed Sep 02 2026 jeroen <jeroen@hierynomus.com> - 1.40609.1-5
+- Collapse Categories to a single main category (Utility) - clears
+  invalid-desktopfile; validate with desktop-file-validate at build time
+- Escape bare %%prep / %%fdupes in comments and %%changelog
+- rpmlintrc: filter no-%%check-section (no upstream testsuite to run)
+
 * Wed Sep 02 2026 jeroen <jeroen@hierynomus.com> - 1.40609.1-4
 - Fix fdupes: use the %%fdupes macro (recurses) instead of bare fdupes,
   which was a no-op - clears files-duplicated-waste + files-duplicate
@@ -163,7 +176,7 @@ update-desktop-database -q /usr/share/applications 2>/dev/null || :
 * Wed Sep 02 2026 jeroen <jeroen@hierynomus.com> - 1.40609.1-3
 - Move to scmsync: package source is the GitHub repo, built via OBS
   SCM/CI workflow integration (PR builds + auto-sync on push to main)
-- Verify the .deb SHA256 (from Anthropic's apt index) in %prep;
+- Verify the .deb SHA256 (from Anthropic's apt index) in %%prep;
   drop the inert _servicedata.xml checksum pin (download_url does not
   consume it)
 

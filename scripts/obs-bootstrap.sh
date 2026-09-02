@@ -54,6 +54,10 @@ XML
   echo "    set"
 fi
 
+echo
+echo "==> Creating the runservice token (push -> scmsync re-sync + rebuild)"
+osc token --create --operation runservice "$PROJ" "$PKG" 2>&1 || true
+
 cat <<'NEXT'
 
 ==> Scripted part done. Remaining manual steps (docs/obs-setup.md):
@@ -61,16 +65,23 @@ cat <<'NEXT'
   1. GitHub: create a fine-grained PAT for hierynomus/claude-desktop-rpm
      with  Contents: read-only,  Commit statuses: read/write.
 
-  2. OBS workflow token (feed it that PAT):
+  2. OBS workflow token for PR builds (feed it that PAT):
        osc token --create --operation workflow --scm-token <GITHUB_PAT>
-     Note the token id it prints.
 
-  3. GitHub -> repo Settings -> Webhooks -> Add webhook:
-       Payload URL:  https://build.opensuse.org/trigger/workflow?id=<TOKEN_ID>
-       Content type: application/json
-       Events:       Pushes, Pull requests
-       (the token's own secret authenticates; SSL verification on)
+  3. GitHub -> repo Settings -> Webhooks -> Add TWO webhooks
+     (content type application/json, SSL on; the token string is the Secret):
+
+       a) Payload URL: https://build.opensuse.org/trigger/webhook?id=<RUNSERVICE_TOKEN_ID>
+          Events:      Pushes
+       b) Payload URL: https://build.opensuse.org/trigger/workflow?id=<WORKFLOW_TOKEN_ID>
+          Events:      Pull requests
+
+     Why two: /trigger/workflow only runs .obs/workflows.yml, which has no
+     push handler. The runservice webhook is what re-pulls git on push.
 
   4. Watch the first sync:
        osc results home:hierynomus claude-desktop
+       osc api /source/home:hierynomus/claude-desktop/_scmsync.obsinfo
+     Force one by hand any time with:
+       osc service remoterun home:hierynomus claude-desktop
 NEXT

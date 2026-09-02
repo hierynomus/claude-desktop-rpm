@@ -1,0 +1,27 @@
+# rpmlint filters for claude-desktop. Everything here is either inherent to
+# Anthropic's prebuilt Electron/Go payload (we repackage, we don't compile)
+# or a deliberate packaging choice. Rationale in docs/worklog.md.
+#
+# NOT filtered, because it can't be: permissions-file-unauthorized on
+# /usr/share/permissions/permissions.d/claude-desktop. It is in
+# opensuse.toml's BlockedFilters set. The drop-in is the correct mechanism
+# for the SUID chrome-sandbox helper; silencing the check needs the digests
+# whitelisted in rpmlint's permissions-whitelist.toml via SUSE security
+# review, which does not apply to a home: project. Accepted residual
+# (badness 10, non-fatal).
+
+# --- upstream prebuilt binaries we cannot rebuild ---------------------------
+# github-mcp-server and cowork-linux-helper are statically linked Go binaries
+# shipped by upstream; static linking and non-PIE are upstream build choices.
+addFilter(r"statically-linked-binary .*/(github-mcp-server|cowork-linux-helper)")
+addFilter(r"position-independent-executable-suggested .*/(github-mcp-server|cowork-linux-helper)")
+# Electron's chrome-sandbox and node-pty's pty.node: upstream SUID/helper code.
+addFilter(r"missing-call-to-setgroups-before-setuid .*/(chrome-sandbox|pty\.node)")
+# Chromium's network stack.
+addFilter(r"binary-or-shlib-calls-gethostbyname .*/claude-desktop")
+
+# --- deliberate packaging choice -------------------------------------------
+# The explicit lib Requires are load-bearing: 6 of the 8 are not NEEDED of
+# any shipped ELF, so rpm's auto-dep scan misses them and a minimal install
+# is broken without them. Kept on purpose (see the Requires block in the spec).
+addFilter(r"explicit-lib-dependency (libgtk-3-0|libnotify4|libsecret-1-0|libuuid1|libXtst6|libdrm2|libgbm1|libxcb-dri3-0)")

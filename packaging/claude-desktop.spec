@@ -19,8 +19,8 @@
 
 Name:           claude-desktop
 Version:        1.40609.1
-Release:        3
-Summary:        Desktop application for Claude.ai (Chat, Cowork, Code)
+Release:        4
+Summary:        Desktop application for Claude (Chat, Cowork, Code)
 License:        MIT
 URL:            https://claude.ai
 # Fetched at build time by the _service download_url service (see _service).
@@ -78,8 +78,8 @@ Suggests:       virtiofsd
 Claude desktop application for Linux (beta). Provides Chat, Cowork and
 Claude Code in a native app. Upstream only ships an amd64/.deb build;
 this package repackages the official .deb payload for RPM systems.
-Cowork additionally needs a KVM-capable machine, qemu, OVMF and
-virtiofsd, plus the user in the kvm group.
+Cowork additionally needs a KVM-capable machine, QEMU, OVMF and
+virtiofsd, plus the user in the KVM group.
 
 %prep
 # Integrity check: the .deb is fetched over TLS by the download_url service;
@@ -107,8 +107,10 @@ cp -a payload/usr/share/applications/com.anthropic.Claude.desktop \
 install -dm 0755 %{buildroot}/usr/share/icons
 cp -a payload/usr/share/icons/hicolor %{buildroot}/usr/share/icons/
 
-# The Electron payload ships several byte-identical files; hardlink them.
-fdupes %{buildroot}
+# The Electron payload ships many byte-identical files (icon light/dark
+# pairs, content-hashed JS chunks); hardlink them. Must be the %fdupes
+# macro, not bare `fdupes`: the macro recurses, plain fdupes does not.
+%fdupes %{buildroot}
 
 # Electron sandbox helper: must be SUID root or the app refuses to start.
 # The bit is declared via the permissions.d drop-in below; permctl applies
@@ -149,6 +151,15 @@ gtk-update-icon-cache -q /usr/share/icons 2>/dev/null || :
 update-desktop-database -q /usr/share/applications 2>/dev/null || :
 
 %changelog
+* Wed Sep 02 2026 jeroen <ajvanerp@gmail.com> - 1.40609.1-4
+- Fix fdupes: use the %%fdupes macro (recurses) instead of bare fdupes,
+  which was a no-op - clears files-duplicated-waste + files-duplicate
+- Drop "ai"/"qemu"/"kvm" spelling-errors (Summary + %%description wording)
+- Add claude-desktop-rpmlintrc for the upstream-inherent / deliberate
+  findings (static Go binaries, PIE, setgroups, gethostbyname, the
+  explicit lib Requires). permissions-file-unauthorized stays: it is a
+  BlockedFilter and needs SUSE security review to whitelist.
+
 * Wed Sep 02 2026 jeroen <ajvanerp@gmail.com> - 1.40609.1-3
 - Move to scmsync: package source is the GitHub repo, built via OBS
   SCM/CI workflow integration (PR builds + auto-sync on push to main)

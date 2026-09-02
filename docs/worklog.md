@@ -126,8 +126,9 @@ is the package source**, OBS pulls it via `<scmsync>`, PRs get test-built.
 ## New layout
 
 ```
-packaging/claude-desktop.spec   canonical recipe (was obs/claude-desktop/, release 3)
-packaging/_service              download_url only; no _servicedata.xml
+packaging/claude-desktop.spec       canonical recipe (was obs/claude-desktop/)
+packaging/claude-desktop-rpmlintrc  filters for upstream-inherent findings
+packaging/_service                  download_url only; no _servicedata.xml
 .obs/workflows.yml              PR builds -> branch into home:hierynomus:ci
 .github/workflows/upstream-bump.yml   daily: open a bump PR if upstream moved
 scripts/bump-version.sh         rewrite spec+_service from the apt index
@@ -140,17 +141,71 @@ Deleted: `obs/` (osc checkout, setup.sh, update-obs.sh, prepared files),
 root `claude-desktop/claude-desktop.spec` + `update.sh` (the standalone
 local-rpmbuild variant — folded into `packaging/` + `scripts/local-build.sh`).
 
-## Carried-over open items (rpmlint, still valid)
+---
 
-The release-2 rpmlint cleanup above is unchanged and unverified on OBS:
-`fdupes` hardlink check, `permissions-file-unauthorized` on the drop-in,
-spelling whitelist. The first scmsync build's `osc rpmlintlog
-openSUSE_Leap_16.0 x86_64` is where to check them.
+# 2026-09-02 (later still): rpmlint on the release-2 OBS build
+
+`osc ci` of release 2 went through; OBS published
+`claude-desktop-1.40609.1-lp160.2.1.x86_64.rpm`. Pulled it and ran
+rpmlint 2.10 locally with `/etc/xdg/rpmlint/opensuse.toml` (what OBS uses):
+**17 errors, 21 warnings, 125 badness.** Analysed each; release 4 addresses
+them.
+
+## Fixed in release 4 (spec)
+
+1. **`files-duplicated-waste` (badness 100) + 15x `files-duplicate`** -
+   the real bug: `%install` ran bare `fdupes %{buildroot}`, which does NOT
+   recurse, so it hardlinked nothing (confirmed: the shipped icons are
+   separate inodes). Changed to the `%fdupes %{buildroot}` macro (the
+   openSUSE wrapper, recurses + hardlinks). Links ~35 files.
+2. **`spelling-error` x3 (`ai`, `qemu`, `kvm`)** - OBS's opensuse.toml does
+   NOT whitelist them (WORKLOG guess was wrong). rpmlint's speller skips
+   all-caps tokens, so: Summary "Claude.ai" -> "Claude"; %description
+   "qemu"/"kvm" -> "QEMU"/"KVM".
+
+## Filtered in release 4 (`packaging/claude-desktop-rpmlintrc`)
+
+Verified locally that each regex matches a real finding (no
+`unused-rpmlintrc-filter`) and that the finding disappears:
+
+- `statically-linked-binary` x2, `position-independent-executable-suggested`
+  x2 - upstream Go binaries (github-mcp-server, cowork-linux-helper)
+- `missing-call-to-setgroups-before-setuid` - Electron chrome-sandbox +
+  node-pty pty.node (upstream)
+- `binary-or-shlib-calls-gethostbyname` - Chromium net stack
+- `explicit-lib-dependency` x8 - the deliberate load-bearing Requires
+
+## Accepted residual - cannot be fixed at home:-project level
+
+**`permissions-file-unauthorized` (badness 10)** on
+`/usr/share/permissions/permissions.d/claude-desktop`. Emitted by
+`FileDigestCheck`, and it is listed in opensuse.toml's **`BlockedFilters`**
+-> `addFilter()` is ignored for it (tested: filter reported unused, error
+still printed). The plain-`chmod 4755` alternative trades it for
+`permissions-file-setuid-bit`, also a BlockedFilter. The only way to
+silence it is registering the drop-in's digests in rpmlint's
+`permissions-whitelist.toml` upstream, which needs SUSE security-team
+review and does not apply to `home:` projects. Keeping the drop-in (it is
+the correct mechanism and what an eventual official submission needs) and
+living with the one non-fatal error.
+
+## Also seen locally, not real
+
+- `unknown-key b6bf489c` - just this laptop lacking the OBS project key;
+  OBS signs with a key its own rpmlint trusts.
+
+## Projected release-4 rpmlint
+
+**1 error (`permissions-file-unauthorized`), 0 warnings, badness 10** -
+from 17E / 27W originally. Needs an actual OBS rebuild to confirm the
+`%fdupes` + spelling changes (no `rpmbuild` on odin to pre-check).
 
 ## Status
 
-- [x] new tree written, `bump-version.sh` tested (no-op + forward bump + downgrade guard)
-- [ ] `git init`, push to github.com/hierynomus/claude-desktop-rpm
+- [x] clean tree written; `bump-version.sh` tested (no-op + forward + downgrade guard)
+- [x] rpmlint analysed against the real r2 build; r4 spec + rpmlintrc written
+- [ ] `git init` + push to github.com/hierynomus/claude-desktop-rpm
 - [ ] `scripts/obs-bootstrap.sh` (needs osc creds)
 - [ ] workflow token + GitHub webhook (docs/obs-setup.md steps 2-4)
-- [ ] confirm first scmsync build + PR build path
+- [ ] confirm r4 rpmlint on the first scmsync build (`osc rpmlintlog openSUSE_Leap_16.0 x86_64`)
+- [ ] confirm PR build path

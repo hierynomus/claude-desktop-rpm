@@ -246,12 +246,24 @@ Down from 17 E / 27 W / 125. rpmlintrc filtered 36. Remaining:
 
 Projected r5: **1 E (permissions-file-unauthorized) / 0 W.**
 
+## r5 built: 1 E / 0 W / 10 badness  ->  rpmlint cleanup DONE
+
+`claude-desktop-1.40609.1-lp160.6.1` published. Only `permissions-file-
+unauthorized` remains (accepted, unfilterable). From the original
+17 E / 27 W this is as clean as a home: project with a SUID helper gets.
+
+Note: OBS replaces the spec's `Release:` with its own `lp160.<n>.<r>`
+scheme, so the `Release:` field + changelog `-N` are documentation only.
+
 ## Status
 
-- [x] repo on GitHub, scmsync set, first builds succeeding
-- [x] webhook root-caused; two-webhook fix documented; runservice token made
-- [x] r4 built (17->2 E); r5 written (desktopfile + macro-escape + filter)
-- [ ] add the runservice webhook on GitHub (docs/obs-setup.md step 4a)
-- [ ] push r5, confirm 1 E / 0 W
-- [ ] confirm PR build path (open a throwaway PR)
-- [ ] GITHUB_TOKEN / PAT for the workflow token + upstream-bump action
+- [x] repo on GitHub, scmsync set
+- [x] webhook root-caused; two-webhook fix in docs + obs-bootstrap.sh
+- [x] r5 built and published: **1 E / 0 W** (from 17 E / 27 W)
+- [ ] **runservice webhook (id 12231) still not firing** - no "Triggered at"
+      on the token after a push; forced every sync so far with
+      `osc service remoterun`. User checking the GitHub webhook config
+      (URL must be /trigger/webhook, Secret = token string, event Pushes).
+- [ ] confirm PR build path (open a throwaway PR) + workflow token PAT
+- [ ] upstream-bump action: needs repo setting "Allow GitHub Actions to
+      create and approve pull requests"

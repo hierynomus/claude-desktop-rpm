@@ -9,8 +9,20 @@
 #     https://build.opensuse.org/trigger/workflow?id=<token-id>
 #   - target project home:hierynomus:ci exists (branch target for PRs)
 #
-# Push to main is handled by scmsync itself: OBS re-syncs the repo and
-# rebuilds home:hierynomus/claude-desktop. No step needed for that here.
+# Push to main: re-run source services on the package. For an scmsync
+# package this makes obs-scm-bridge re-pull git and OBS rebuild - the same
+# thing `osc service remoterun home:hierynomus claude-desktop` does. Without
+# this, a push matches no workflow and the scmsync mirror never updates.
+sync_main:
+  steps:
+    - trigger_services:
+        project: home:hierynomus
+        package: claude-desktop
+  filters:
+    event: push
+    branches:
+      only:
+        - main
 
 pull_request:
   steps:

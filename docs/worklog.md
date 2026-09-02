@@ -246,11 +246,26 @@ Down from 17 E / 27 W / 125. rpmlintrc filtered 36. Remaining:
 
 Projected r5: **1 E (permissions-file-unauthorized) / 0 W.**
 
-## r5 built: 1 E / 0 W / 10 badness  ->  rpmlint cleanup DONE
+## r5: 1 E / 0 W / 10 badness  (permissions-file-unauthorized)
 
-`claude-desktop-1.40609.1-lp160.6.1` published. Only `permissions-file-
-unauthorized` remains (accepted, unfilterable). From the original
-17 E / 27 W this is as clean as a home: project with a SUID helper gets.
+Only `permissions-file-unauthorized` left. It cannot be filtered
+(opensuse.toml `BlockedFilters`; `addFilter` and `setBadness` are the only
+rpmlintrc directives and the former is blocked for this id). The
+plain-`chmod` alternative just swaps it for `permissions-file-setuid-bit`,
+also blocked, also badness 10.
+
+## r6: drop the SUID sandbox  ->  0 E / 0 W
+
+Real fix, not a filter. Ship `chrome-sandbox` as `0755`. Electron 42 /
+Chrome 148 uses the unprivileged **user-namespace sandbox** by default and
+only falls back to the SUID helper when userns is unavailable; openSUSE
+enables unprivileged userns out of the box (podman-rootless, flatpak). The
+sandbox stays fully active - not `--no-sandbox`.
+
+Removed with it: the `permissions.d` drop-in, `PreReq: permissions`,
+`%verifyscript`, `%set_permissions`. No permissions check fires now.
+README gained a "Sandbox" section (userns requirement + the
+"SUID sandbox helper ... not configured correctly" failure mode).
 
 Note: OBS replaces the spec's `Release:` with its own `lp160.<n>.<r>`
 scheme, so the `Release:` field + changelog `-N` are documentation only.
@@ -259,11 +274,15 @@ scheme, so the `Release:` field + changelog `-N` are documentation only.
 
 - [x] repo on GitHub, scmsync set
 - [x] webhook root-caused; two-webhook fix in docs + obs-bootstrap.sh
-- [x] r5 built and published: **1 E / 0 W** (from 17 E / 27 W)
-- [ ] **runservice webhook (id 12231) still not firing** - no "Triggered at"
-      on the token after a push; forced every sync so far with
-      `osc service remoterun`. User checking the GitHub webhook config
-      (URL must be /trigger/webhook, Secret = token string, event Pushes).
+- [x] r5 built: 1 E / 0 W; r6 written to reach 0 E / 0 W (non-SUID sandbox)
+- [ ] confirm r6 rpmlint 0/0 on OBS
+- [ ] **webhook still not reliably firing.** 12228 (workflow) fired once
+      for 3b944bd (22:19 UTC) then stopped; 12231 (runservice) never fired
+      from a push. `trigger_services` push step added to workflows.yml
+      (b831cd0) did not sync either. Forcing every sync with
+      `osc service remoterun home:hierynomus claude-desktop`. Needs the
+      GitHub "Recent Deliveries" tab checked - is the hook still enabled,
+      what response is OBS giving, which events/URL.
 - [ ] confirm PR build path (open a throwaway PR) + workflow token PAT
-- [ ] upstream-bump action: needs repo setting "Allow GitHub Actions to
-      create and approve pull requests"
+- [ ] upstream-bump action: repo setting "Allow GitHub Actions to create
+      and approve pull requests"

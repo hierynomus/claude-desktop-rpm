@@ -19,7 +19,7 @@
 
 Name:           claude-desktop
 Version:        1.40609.1
-Release:        5
+Release:        6
 Summary:        Desktop application for Claude (Chat, Cowork, Code)
 License:        MIT
 URL:            https://claude.ai
@@ -28,11 +28,12 @@ URL:            https://claude.ai
 Source0:        claude-desktop_%{version}_amd64.deb
 
 ExclusiveArch:  x86_64
-# chrome-sandbox is SUID-root (Electron's sandbox helper refuses to start
-# without it). The SUID bit is declared to the SUSE permissions framework
-# via a /usr/share/permissions/permissions.d drop-in; 'permissions'
-# (permctl/chkstat) applies and re-applies the mode at install time.
-PreReq:         permissions
+# Electron's chrome-sandbox is shipped NON-SUID (0755). Chromium prefers the
+# unprivileged-user-namespace sandbox and only falls back to the SUID helper
+# when userns is unavailable; openSUSE enables unprivileged userns by default
+# (podman-rootless, flatpak). The sandbox stays fully active - this is not
+# --no-sandbox. Dropping the SUID bit also drops the SUSE permissions-
+# framework drop-in and rpmlint's SUID review flag. See README "Sandbox".
 BuildRequires:  fdupes
 BuildRequires:  desktop-file-utils
 
@@ -119,18 +120,11 @@ cp -a payload/usr/share/icons/hicolor %{buildroot}/usr/share/icons/
 # macro, not bare `fdupes`: the macro recurses, plain fdupes does not.
 %fdupes %{buildroot}
 
-# Electron sandbox helper: must be SUID root or the app refuses to start.
-# The bit is declared via the permissions.d drop-in below; permctl applies
-# it at install time (kept here so the packaged bit matches the profile).
-chmod 4755 %{buildroot}/usr/lib/claude-desktop/chrome-sandbox
-
-# SUSE permissions framework drop-in: declares the SUID helper so
-# permctl/chkstat manage its mode instead of it being an unexplained bit.
-install -dm 0755 %{buildroot}/usr/share/permissions/permissions.d
-cat > %{buildroot}/usr/share/permissions/permissions.d/claude-desktop <<'EOF'
-# Claude Desktop: Electron SUID sandbox helper (upstream ships 4755)
-/usr/lib/claude-desktop/chrome-sandbox root:root 4755
-EOF
+# Ship chrome-sandbox NON-SUID (upstream .deb has it 4755). Chromium uses the
+# user-namespace sandbox when unprivileged userns is available (openSUSE
+# default) and never touches this helper; the SUID path is a fallback only.
+# No SUID bit -> no permissions-framework drop-in, no rpmlint SUID review.
+chmod 0755 %{buildroot}/usr/lib/claude-desktop/chrome-sandbox
 
 %files
 %defattr(-,root,root)
@@ -138,18 +132,8 @@ EOF
 /usr/lib/claude-desktop
 /usr/share/applications/com.anthropic.Claude.desktop
 /usr/share/icons/hicolor
-/usr/share/permissions/permissions.d/claude-desktop
-# SUID bit is managed by the permissions framework (permctl/chkstat via the
-# drop-in above); keep rpm's own verifier from flagging the mode it manages.
-%verify(not user group mode)
-%attr(04755,root,root)
-/usr/lib/claude-desktop/chrome-sandbox
-
-%verifyscript
-/usr/bin/chkstat -n --warn --system -e /usr/lib/claude-desktop/chrome-sandbox 1>&2
 
 %post
-%set_permissions /usr/lib/claude-desktop/chrome-sandbox
 gtk-update-icon-cache -q /usr/share/icons 2>/dev/null || :
 update-desktop-database -q /usr/share/applications 2>/dev/null || :
 
@@ -158,6 +142,12 @@ gtk-update-icon-cache -q /usr/share/icons 2>/dev/null || :
 update-desktop-database -q /usr/share/applications 2>/dev/null || :
 
 %changelog
+* Thu Sep 03 2026 jeroen <jeroen@hierynomus.com> - 1.40609.1-6
+- Ship chrome-sandbox non-SUID (0755) and rely on the user-namespace
+  sandbox (default on openSUSE). Drops the permissions.d drop-in,
+  PreReq: permissions, %%verifyscript and %%set_permissions - and with them
+  the last rpmlint error (permissions-file-unauthorized). rpmlint: 0/0.
+
 * Wed Sep 02 2026 jeroen <jeroen@hierynomus.com> - 1.40609.1-5
 - Collapse Categories to a single main category (Utility) - clears
   invalid-desktopfile; validate with desktop-file-validate at build time

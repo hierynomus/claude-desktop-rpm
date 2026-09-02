@@ -57,6 +57,19 @@ Needs `rpm-build`. Same `%prep` checksum gate as OBS.
 See [`docs/obs-setup.md`](docs/obs-setup.md): run `scripts/obs-bootstrap.sh`,
 then create the OBS workflow token and the GitHub webhook.
 
+## Sandbox
+
+`chrome-sandbox` is shipped **non-SUID** (upstream's `.deb` sets it `4755`).
+Chromium prefers the unprivileged **user-namespace sandbox** and only uses
+the SUID helper as a fallback; openSUSE enables unprivileged user namespaces
+by default (podman-rootless, flatpak rely on it), so the sandbox is fully
+active. This is *not* `--no-sandbox`.
+
+If a host has unprivileged userns disabled, the app fails to start with
+`The SUID sandbox helper binary was found, but is not configured correctly`.
+Re-enable it (`sysctl -w kernel.unprivileged_userns_clone=1` /
+`user.max_user_namespaces=<n>`), don't chmod the helper.
+
 ## Notes
 
 - Unsigned local builds: `sudo zypper --no-gpg-checks install ./dist/*.rpm`,
@@ -64,5 +77,5 @@ then create the OBS workflow token and the GitHub webhook.
 - `License: MIT` in the spec is a packaging placeholder — Claude Desktop is
   Anthropic proprietary; the payload bundles Chromium (BSD-3-Clause) and
   virtiofsd (Apache/BSD). Revisit before any non-home submission.
-- If a future `.deb` moves files or adds SUID helpers, update `%files` and
-  the permissions drop-in in the spec.
+- If a future `.deb` moves files or adds new SUID helpers, update `%files`
+  and revisit the sandbox note above.

@@ -2,13 +2,8 @@
 # Anthropic's prebuilt Electron/Go payload (we repackage, we don't compile)
 # or a deliberate packaging choice. Rationale in docs/worklog.md.
 #
-# NOT filtered, because it can't be: permissions-file-unauthorized on
-# /usr/share/permissions/permissions.d/claude-desktop. It is in
-# opensuse.toml's BlockedFilters set. The drop-in is the correct mechanism
-# for the SUID chrome-sandbox helper; silencing the check needs the digests
-# whitelisted in rpmlint's permissions-whitelist.toml via SUSE security
-# review, which does not apply to a home: project. Accepted residual
-# (badness 10, non-fatal).
+# There is no permissions/SUID filter: chrome-sandbox ships non-SUID and the
+# app uses the user-namespace sandbox, so no permissions check fires at all.
 
 # --- upstream prebuilt binaries we cannot rebuild ---------------------------
 # github-mcp-server and cowork-linux-helper are statically linked Go binaries

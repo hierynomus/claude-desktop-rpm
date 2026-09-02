@@ -151,7 +151,7 @@ gtk-update-icon-cache -q /usr/share/icons 2>/dev/null || :
 update-desktop-database -q /usr/share/applications 2>/dev/null || :
 
 %changelog
-* Wed Sep 02 2026 jeroen <ajvanerp@gmail.com> - 1.40609.1-4
+* Wed Sep 02 2026 jeroen <jeroen@hierynomus.com> - 1.40609.1-4
 - Fix fdupes: use the %%fdupes macro (recurses) instead of bare fdupes,
   which was a no-op - clears files-duplicated-waste + files-duplicate
 - Drop "ai"/"qemu"/"kvm" spelling-errors (Summary + %%description wording)
@@ -160,7 +160,7 @@ update-desktop-database -q /usr/share/applications 2>/dev/null || :
   explicit lib Requires). permissions-file-unauthorized stays: it is a
   BlockedFilter and needs SUSE security review to whitelist.
 
-* Wed Sep 02 2026 jeroen <ajvanerp@gmail.com> - 1.40609.1-3
+* Wed Sep 02 2026 jeroen <jeroen@hierynomus.com> - 1.40609.1-3
 - Move to scmsync: package source is the GitHub repo, built via OBS
   SCM/CI workflow integration (PR builds + auto-sync on push to main)
 - Verify the .deb SHA256 (from Anthropic's apt index) in %prep;

@@ -83,7 +83,7 @@ awk -v new="$new" -v sha="$sha" '
   { print }
 ' "$SPEC" > "$tmp"
 
-entry="* $(LC_ALL=C date '+%a %b %d %Y') jeroen <ajvanerp@gmail.com> - ${new}-1
+entry="* $(LC_ALL=C date '+%a %b %d %Y') jeroen <jeroen@hierynomus.com> - ${new}-1
 - Update to upstream ${new}"
 awk -v e="$entry" '
   { print }

@@ -82,3 +82,5 @@ Re-enable it (`sysctl -w kernel.unprivileged_userns_clone=1` /
   virtiofsd (Apache/BSD). Revisit before any non-home submission.
 - If a future `.deb` moves files or adds new SUID helpers, update `%files`
   and revisit the sandbox note above.
+
+<!-- CI smoke test: exercise the OBS PR build path. Safe to revert. -->

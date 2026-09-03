@@ -125,7 +125,7 @@ cp -a payload/usr/share/icons/hicolor %{buildroot}/usr/share/icons/
 # No SUID bit -> no permissions-framework drop-in, no rpmlint SUID review.
 chmod 0755 %{buildroot}/usr/lib/claude-desktop/chrome-sandbox
 
-# No %post/%postun: openSUSE runs update-desktop-database and
+# No %%post/%%postun: openSUSE runs update-desktop-database and
 # gtk-update-icon-cache from file triggers (desktop-file-utils, gtk3) on
 # /usr/share/applications and /usr/share/icons.
 

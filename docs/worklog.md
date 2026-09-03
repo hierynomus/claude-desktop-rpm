@@ -276,7 +276,8 @@ scheme, so the `Release:` field + changelog `-N` are documentation only.
 - [x] webhook root-caused; two-webhook fix in docs + obs-bootstrap.sh
 - [x] **r6 built: 0 E / 0 W / 0 badness** (`lp160.11.1`). rpmlint clean,
       from 17 E / 27 W. Done.
-- [ ] smoke-test r6 on a real desktop (non-SUID sandbox actually launches)
+- [x] r6 installed from the OBS repo and verified working - non-SUID +
+      userns sandbox confirmed on a real openSUSE desktop (2026-09-03).
 - [ ] **webhook still not reliably firing.** 12228 (workflow) fired once
       for 3b944bd (22:19 UTC) then stopped; 12231 (runservice) never fired
       from a push. `trigger_services` push step added to workflows.yml

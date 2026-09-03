@@ -65,6 +65,9 @@ the SUID helper as a fallback; openSUSE enables unprivileged user namespaces
 by default (podman-rootless, flatpak rely on it), so the sandbox is fully
 active. This is *not* `--no-sandbox`.
 
+Verified working this way on openSUSE (installed from the repo, app
+launches with the sandbox active).
+
 If a host has unprivileged userns disabled, the app fails to start with
 `The SUID sandbox helper binary was found, but is not configured correctly`.
 Re-enable it (`sysctl -w kernel.unprivileged_userns_clone=1` /

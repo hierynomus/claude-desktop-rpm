@@ -5,10 +5,9 @@
 #
 # All license terms are preserved from the original .deb payload.
 # NOTE: claude-desktop is Anthropic's proprietary desktop app. The "MIT"
-# tag below is a packaging placeholder matching the local build; the app
-# ships LICENSES.chromium.html (Chromium, BSD-3-Clause) plus Apache/BSD
-# for the bundled virtiofsd. Revisit the License tag before any external
-# submission.
+# tag below is a packaging placeholder; the app ships LICENSES.chromium.html
+# (Chromium, BSD-3-Clause) plus Apache/BSD for the bundled virtiofsd.
+# Revisit the License tag before any external submission.
 #
 
 # SHA256 of the upstream .deb, taken from Anthropic's apt Packages index
@@ -143,43 +142,7 @@ gtk-update-icon-cache -q /usr/share/icons 2>/dev/null || :
 update-desktop-database -q /usr/share/applications 2>/dev/null || :
 
 %changelog
-* Thu Sep 03 2026 jeroen <jeroen@hierynomus.com> - 1.40609.1-7
-- Release: 0 (openSUSE convention; OBS supplies the real release)
-
-* Thu Sep 03 2026 jeroen <jeroen@hierynomus.com> - 1.40609.1-6
-- Ship chrome-sandbox non-SUID (0755) and rely on the user-namespace
-  sandbox (default on openSUSE). Drops the permissions.d drop-in,
-  PreReq: permissions, %%verifyscript and %%set_permissions - and with them
-  the last rpmlint error (permissions-file-unauthorized). rpmlint: 0/0.
-
-* Wed Sep 02 2026 jeroen <jeroen@hierynomus.com> - 1.40609.1-5
-- Collapse Categories to a single main category (Utility) - clears
-  invalid-desktopfile; validate with desktop-file-validate at build time
-- Escape bare %%prep / %%fdupes in comments and %%changelog
-- rpmlintrc: filter no-%%check-section (no upstream testsuite to run)
-
-* Wed Sep 02 2026 jeroen <jeroen@hierynomus.com> - 1.40609.1-4
-- Fix fdupes: use the %%fdupes macro (recurses) instead of bare fdupes,
-  which was a no-op - clears files-duplicated-waste + files-duplicate
-- Drop "ai"/"qemu"/"kvm" spelling-errors (Summary + %%description wording)
-- Add claude-desktop-rpmlintrc for the upstream-inherent / deliberate
-  findings (static Go binaries, PIE, setgroups, gethostbyname, the
-  explicit lib Requires). permissions-file-unauthorized stays: it is a
-  BlockedFilter and needs SUSE security review to whitelist.
-
-* Wed Sep 02 2026 jeroen <jeroen@hierynomus.com> - 1.40609.1-3
-- Move to scmsync: package source is the GitHub repo, built via OBS
-  SCM/CI workflow integration (PR builds + auto-sync on push to main)
-- Verify the .deb SHA256 (from Anthropic's apt index) in %%prep;
-  drop the inert _servicedata.xml checksum pin (download_url does not
-  consume it)
-
-* Wed Sep 02 2026 jeroen <jeroen@localhost> - 1.40609.1-2
-- Declare SUID chrome-sandbox to the SUSE permissions framework
-  (permissions.d drop-in + permctl/chkstat scriptlets)
-- fdupes: hardlink byte-identical Electron payload files
-- strip libvulkan.so.1 and pty.node
-- ExclusiveArch instead of BuildArch; literal scriptlet paths
-
-* Wed Sep 02 2026 jeroen <jeroen@localhost> - 1.40609.1-1
-- Initial import of upstream .deb payload as native RPM (OBS home:hierynomus)
+* Thu Sep 03 2026 jeroen <jeroen@hierynomus.com> - 1.40609.1-0
+- Initial packaging: repackage Anthropic's Claude Desktop .deb as an
+  openSUSE RPM, built from git via OBS scmsync. Non-SUID chrome-sandbox
+  (user-namespace sandbox), SHA256-verified payload, rpmlint clean.

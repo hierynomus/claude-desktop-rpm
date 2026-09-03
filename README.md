@@ -19,29 +19,29 @@ KVM-capable host with `qemu` + `ovmf` + `virtiofsd` and your user in the
 
 ## How it works
 
-The package source **is this repo** — OBS mirrors it via `<scmsync>` and
-rebuilds on every push to `main`. The 166 MB `.deb` is never committed:
-`packaging/_service` fetches it at build time and `packaging/claude-desktop.spec`
-verifies its SHA256 in `%prep` against the value in Anthropic's apt index.
+The package source **is this repo**. OBS mirrors `packaging/` via
+`<scmsync>` and rebuilds when a push changes it. The 166 MB `.deb` is never
+committed: `packaging/_service` fetches it at build time and
+`packaging/claude-desktop.spec` verifies its SHA256 in `%prep` against the
+value in Anthropic's apt index.
 
 | path | what |
 |---|---|
-| `packaging/claude-desktop.spec` | the recipe (dependency mapping, SUID sandbox handling, `%prep` checksum) |
+| `packaging/claude-desktop.spec` | the recipe — dependency mapping, `%prep` checksum, non-SUID sandbox |
 | `packaging/claude-desktop-rpmlintrc` | rpmlint filters for upstream-inherent / deliberate findings |
 | `packaging/_service` | `download_url` for the upstream `.deb` |
-| `.obs/workflows.yml` | OBS SCM/CI: build each PR in `home:hierynomus:ci`, report status back |
+| `.obs/workflows.yml` | OBS SCM/CI — build each PR in a scratch project, report status back |
 | `.github/workflows/upstream-bump.yml` | daily — open a PR when Anthropic publishes a newer build |
 | `scripts/bump-version.sh` | rewrite `packaging/` from the apt index (no `.deb` download) |
 | `scripts/local-build.sh` | fetch the `.deb` + `rpmbuild -bb` locally, to test before OBS |
-| `scripts/obs-bootstrap.sh` | one-time OBS setup (`:ci` project + `<scmsync>`) |
+| `scripts/obs-bootstrap.sh` | one-time OBS setup (`:ci` project, `<scmsync>`, runservice token) |
 | `docs/obs-setup.md` | the one-time token + webhook steps |
-| `docs/worklog.md` | history / rpmlint notes |
 
 ## Update flow
 
 1. `upstream-bump.yml` (or `scripts/bump-version.sh` by hand) opens a PR
    bumping `Version` + `%global deb_sha256` + the `_service` URL.
-2. OBS builds the PR in `home:hierynomus:ci`; the check lands on the PR.
+2. OBS test-builds the PR; the status check lands on it.
 3. Merge → OBS re-syncs and rebuilds `home:hierynomus/claude-desktop`.
 
 ## Local build
@@ -55,7 +55,8 @@ Needs `rpm-build`. Same `%prep` checksum gate as OBS.
 ## One-time OBS wiring
 
 See [`docs/obs-setup.md`](docs/obs-setup.md): run `scripts/obs-bootstrap.sh`,
-then create the OBS workflow token and the GitHub webhook.
+create a GitHub PAT and the `workflow` token, then add two GitHub webhooks
+(push → `/trigger/webhook`, PR → `/trigger/workflow`).
 
 ## Sandbox
 
@@ -63,15 +64,11 @@ then create the OBS workflow token and the GitHub webhook.
 Chromium prefers the unprivileged **user-namespace sandbox** and only uses
 the SUID helper as a fallback; openSUSE enables unprivileged user namespaces
 by default (podman-rootless, flatpak rely on it), so the sandbox is fully
-active. This is *not* `--no-sandbox`.
-
-Verified working this way on openSUSE (installed from the repo, app
-launches with the sandbox active).
+active. This is *not* `--no-sandbox`, and it's verified working on openSUSE.
 
 If a host has unprivileged userns disabled, the app fails to start with
 `The SUID sandbox helper binary was found, but is not configured correctly`.
-Re-enable it (`sysctl -w kernel.unprivileged_userns_clone=1` /
-`user.max_user_namespaces=<n>`), don't chmod the helper.
+Re-enable userns (`user.max_user_namespaces`), don't chmod the helper.
 
 ## Notes
 
@@ -80,5 +77,5 @@ Re-enable it (`sysctl -w kernel.unprivileged_userns_clone=1` /
 - `License: MIT` in the spec is a packaging placeholder — Claude Desktop is
   Anthropic proprietary; the payload bundles Chromium (BSD-3-Clause) and
   virtiofsd (Apache/BSD). Revisit before any non-home submission.
-- If a future `.deb` moves files or adds new SUID helpers, update `%files`
-  and revisit the sandbox note above.
+- If a future `.deb` moves files or adds SUID helpers, update `%files` and
+  revisit the sandbox note above.

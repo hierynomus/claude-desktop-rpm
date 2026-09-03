@@ -2,7 +2,7 @@
 # Bump packaging/ to the newest claude-desktop in Anthropic's apt index.
 #
 # Rewrites, in lockstep:
-#   packaging/claude-desktop.spec   Version, %global deb_sha256, Release->1, %changelog
+#   packaging/claude-desktop.spec   Version, %global deb_sha256, Release->0, %changelog
 #   packaging/_service              download_url url + filename
 #
 # The checksum comes straight from the apt Packages index (field "SHA256:"),
@@ -83,7 +83,7 @@ awk -v new="$new" -v sha="$sha" '
   { print }
 ' "$SPEC" > "$tmp"
 
-entry="* $(LC_ALL=C date '+%a %b %d %Y') jeroen <jeroen@hierynomus.com> - ${new}-1
+entry="* $(LC_ALL=C date '+%a %b %d %Y') jeroen <jeroen@hierynomus.com> - ${new}-0
 - Update to upstream ${new}"
 awk -v e="$entry" '
   { print }

@@ -1,28 +1,13 @@
-# OBS SCM/CI workflow integration.
+# OBS SCM/CI workflow integration - PR builds only.
 # https://openbuildservice.org/help/manuals/obs-user-guide/cha.obs.scm_ci_workflow_integration.html
 #
-# One-time setup (see docs/obs-setup.md):
-#   - home:hierynomus/claude-desktop has <scmsync> pointing at this repo
-#   - an OBS workflow token exists (osc token --create --operation workflow
-#     --scm-token <github-PAT>)
-#   - a GitHub webhook posts to
-#     https://build.opensuse.org/trigger/workflow?id=<token-id>
-#   - target project home:hierynomus:ci exists (branch target for PRs)
+# Pushes to main are handled outside this file, by a runservice token +
+# /trigger/webhook (see docs/obs-setup.md). This file is reached only by the
+# workflow token + /trigger/workflow, wired to pull_request events.
 #
-# Push to main: re-run source services on the package. For an scmsync
-# package this makes obs-scm-bridge re-pull git and OBS rebuild - the same
-# thing `osc service remoterun home:hierynomus claude-desktop` does. Without
-# this, a push matches no workflow and the scmsync mirror never updates.
-sync_main:
-  steps:
-    - trigger_services:
-        project: home:hierynomus
-        package: claude-desktop
-  filters:
-    event: push
-    branches:
-      only:
-        - main
+# On a PR, branch the package into a scratch project pinned to the PR head,
+# build it (publishing disabled), and report status back to the PR. OBS
+# deletes the scratch project when the PR closes.
 
 pull_request:
   steps:

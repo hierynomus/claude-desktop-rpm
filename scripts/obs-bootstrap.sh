@@ -5,9 +5,10 @@
 #   - ensures home:hierynomus:ci exists (PR branch target) with the same
 #     Leap 16.0 / x86_64 repo as home:hierynomus
 #   - points home:hierynomus/claude-desktop at this git repo via <scmsync>
+#   - creates the runservice token (push -> rebuild)
 #
-# It does NOT create the workflow token or the GitHub webhook - those need
-# a GitHub PAT and the GitHub UI. See docs/obs-setup.md for those steps.
+# The workflow token and the two GitHub webhooks are manual - they need a
+# GitHub PAT and the GitHub UI. See docs/obs-setup.md.
 #
 # Prereqs: osc installed and configured for build.opensuse.org.
 # Usage:   scripts/obs-bootstrap.sh [git-url]
@@ -76,12 +77,15 @@ cat <<'NEXT'
        b) Payload URL: https://build.opensuse.org/trigger/workflow?id=<WORKFLOW_TOKEN_ID>
           Events:      Pull requests
 
-     Why two: /trigger/workflow only runs .obs/workflows.yml, which has no
-     push handler. The runservice webhook is what re-pulls git on push.
+     Why two: /trigger/workflow only runs .obs/workflows.yml (PR builds).
+     /trigger/webhook (runservice) re-pulls the scmsync source on push.
 
-  4. Watch the first sync:
+  4. GitHub Settings -> Actions -> General -> Workflow permissions:
+     enable "Allow GitHub Actions to create and approve pull requests".
+
+  5. Verify (after a commit that touches packaging/):
        osc results home:hierynomus claude-desktop
        osc api /source/home:hierynomus/claude-desktop/_scmsync.obsinfo
-     Force one by hand any time with:
+     Force a sync by hand any time with:
        osc service remoterun home:hierynomus claude-desktop
 NEXT

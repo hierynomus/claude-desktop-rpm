@@ -1,36 +1,30 @@
-# OBS SCM/CI setup (one-time)
+# OBS setup (one-time)
 
-How `home:hierynomus/claude-desktop` on build.opensuse.org is wired to this
-GitHub repo. You do this once. After that the flow is just: merge a PR →
-OBS rebuilds the signed RPM.
+Wires `home:hierynomus/claude-desktop` on build.opensuse.org to this repo.
+Done once; after that a push to `main` rebuilds and PRs get test-built.
 
 ## Model
 
-- **Package source = this git repo**, via `<scmsync>` in the package meta
-  (`obs-scm-bridge`). No more `osc ci`.
-- **`packaging/` subdir** holds the build recipe: `claude-desktop.spec` +
-  `_service`. `<scmsync>` points at `…?subdir=packaging#main`.
-- **The 166 MB `.deb` is never in git.** `_service` runs `download_url` at
-  build time; `%prep` verifies its SHA256 against the value Anthropic
-  publishes in their apt `Packages` index.
-- **`.obs/workflows.yml`** (repo root — OBS always reads it from there, not
-  from `packaging/`) drives **pull-request builds**: each PR is branched
-  into `home:hierynomus:ci`, built, and the result is reported back onto
-  the PR as a commit status.
-- **Push to `main`** is handled by a second webhook to a `runservice`
-  token (`/trigger/webhook`), which makes OBS re-pull git and rebuild
-  `home:hierynomus/claude-desktop`. `.obs/workflows.yml` is *not* consulted
-  for pushes, so the workflow webhook alone does nothing on a push.
+- **Package source is this git repo**, via `<scmsync>` in the package meta
+  (`obs-scm-bridge`) — no `osc ci`. The `<scmsync>` URL carries
+  `?subdir=packaging#main`, so only `packaging/` is packaged; a push that
+  doesn't touch `packaging/` regenerates an identical tree and correctly
+  does not rebuild.
+- **The 166 MB `.deb` is never in git.** `packaging/_service` runs
+  `download_url` at build time; `%prep` verifies its SHA256 against the
+  value in Anthropic's apt `Packages` index.
+- **`.obs/workflows.yml`** (repo root) drives **PR builds**: each PR is
+  branched into `home:hierynomus:ci:hierynomus:claude-desktop-rpm:PR-<n>`,
+  built with publishing disabled, and the result is posted back to the PR
+  as status checks. The branch project auto-deletes when the PR closes.
 - **`.github/workflows/upstream-bump.yml`** opens a bump PR when Anthropic
-  ships a new version. It needs no OBS credentials.
+  ships a newer build. Needs no OBS credentials.
 
 ```
-Anthropic apt index ──(daily cron)──> bump PR ──> OBS PR build (home:hierynomus:ci)
-                                          │              │ status
-                                          ▼              ▼
-                                        merge ──> scmsync sync ──> home:hierynomus/claude-desktop
-                                                                          │
-                                                          download.opensuse.org/repositories/home:hierynomus/…
+Anthropic apt index ─(daily cron)→ bump PR ─→ OBS PR build (status checks)
+                                      │
+                                    merge ─→ push webhook ─→ rebuild ─→
+                                      download.opensuse.org/repositories/home:hierynomus/
 ```
 
 ## Steps
@@ -41,16 +35,14 @@ Anthropic apt index ──(daily cron)──> bump PR ──> OBS PR build (home
 scripts/obs-bootstrap.sh
 ```
 
-Idempotent. Creates `home:hierynomus:ci` and sets
+Idempotent. Creates `home:hierynomus:ci` (the PR branch target) and sets
 
 ```xml
 <scmsync>https://github.com/hierynomus/claude-desktop-rpm?subdir=packaging#main</scmsync>
 ```
 
-on `home:hierynomus/claude-desktop` (via `osc meta pkg … -F -`).
-
-Or by hand: `osc meta pkg home:hierynomus claude-desktop -e` and add the
-`<scmsync>` element.
+on `home:hierynomus/claude-desktop`. It also creates the `runservice`
+token (step 3a). By hand: `osc meta pkg home:hierynomus claude-desktop -e`.
 
 ### 2. GitHub PAT for OBS
 
@@ -61,56 +53,42 @@ Fine-grained token on `hierynomus/claude-desktop-rpm`:
 
 ### 3. Two OBS tokens
 
-They do different jobs and **you need both**:
-
 ```
-# a) syncs the scmsync package + rebuilds on push to main
+# a) push to main -> re-pull git + rebuild
 osc token --create --operation runservice home:hierynomus claude-desktop
 
-# b) runs .obs/workflows.yml (the PR builds); feed it the GitHub PAT
+# b) PR events -> run .obs/workflows.yml  (feed it the PAT from step 2)
 osc token --create --operation workflow --scm-token <GITHUB_PAT>
 ```
 
-Each prints an **id** and a **secret string**.
-
-Why two: `/trigger/workflow` only executes `.obs/workflows.yml` steps. A
-push to `main` matches no workflow there (the file only has a
-`pull_request` workflow), so it would do nothing — the scmsync package
-would never re-sync. The `runservice` token on `/trigger/webhook` is what
-re-pulls git and rebuilds. (`osc service remoterun home:hierynomus
-claude-desktop` is the manual equivalent — handy to force a sync.)
+Each prints an **id** and a **secret string**. Two are needed because the
+two `/trigger/*` endpoints do different things: `/trigger/webhook`
+(runservice) re-pulls the scmsync source and rebuilds; `/trigger/workflow`
+only executes `.obs/workflows.yml` steps, which are PR-only.
 
 ### 4. Two GitHub webhooks
 
-Repo **Settings → Webhooks → Add webhook**, twice:
+Repo **Settings → Webhooks → Add webhook**, twice. Content type
+`application/json`, SSL verification on, the token **string** in *Secret*:
 
-| # | Payload URL | Secret | Events |
-|---|---|---|---|
-| 1 | `https://build.opensuse.org/trigger/webhook?id=<RUNSERVICE_TOKEN_ID>` | runservice token string | **Pushes** |
-| 2 | `https://build.opensuse.org/trigger/workflow?id=<WORKFLOW_TOKEN_ID>` | workflow token string | **Pull requests** |
+| Payload URL | Events |
+|---|---|
+| `https://build.opensuse.org/trigger/webhook?id=<RUNSERVICE_TOKEN_ID>` | Pushes |
+| `https://build.opensuse.org/trigger/workflow?id=<WORKFLOW_TOKEN_ID>` | Pull requests |
 
-Both: content type `application/json`, SSL verification on.
+### 5. GitHub repo setting
 
-### 5. Verify
+**Settings → Actions → General → Workflow permissions:** enable *Allow
+GitHub Actions to create and approve pull requests* (for `upstream-bump`).
 
-- Push a trivial commit to `main` → `osc results home:hierynomus claude-desktop`
-  shows a rebuild; `osc api /source/home:hierynomus/claude-desktop/_scmsync.obsinfo`
-  shows the new commit sha.
-- Open a throwaway PR → an OBS check appears on it, building in
-  `home:hierynomus:ci`.
-- Stuck? `osc service remoterun home:hierynomus claude-desktop` forces a sync.
+## Verify
 
-## Migrating from the old osc-committed package
-
-The package previously had plain source revisions (`claude-desktop.spec`,
-`_service`, `_servicedata.xml` committed via `osc ci`). Setting `<scmsync>`
-switches it to git-backed mode; the old revisions stay in history but are
-no longer the source. Nothing to delete. The old working copy under
-`obs/home:hierynomus/` in git history is obsolete.
-
-`_servicedata.xml` is gone on purpose: `download_url` does not read it
-(it is a plain `wget`), so the sha512 pin it carried never did anything.
-Integrity now lives in `%prep`.
+- Push a commit that changes `packaging/` → `_scmsync.obsinfo` advances and
+  a build starts:
+  `osc api /source/home:hierynomus/claude-desktop/_scmsync.obsinfo`
+- Open a throwaway PR → an "OBS" status check appears and goes green.
+- Force a sync by hand if ever needed:
+  `osc service remoterun home:hierynomus claude-desktop`
 
 ## Install on a desktop
 

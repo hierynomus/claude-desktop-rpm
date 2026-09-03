@@ -1,11 +1,17 @@
 name: upstream version bump
 
 # Checks Anthropic's apt index for a newer claude-desktop and, if there is
-# one, opens a PR that bumps packaging/. Merging that PR triggers the OBS
-# scmsync re-sync + rebuild (see .obs/workflows.yml and docs/obs-setup.md).
+# one, opens a PR that bumps packaging/ and turns on auto-merge. OBS
+# test-builds the PR; when the "OBS: claude-desktop ..." check goes green
+# the PR merges itself, and the push to main triggers the real rebuild.
 #
-# No OBS credentials are needed here: the checksum comes from the apt index,
-# and OBS reacts to the git push on its own.
+# Auto-merge is inert until, in repo Settings: (a) "Allow auto-merge" is on,
+# and (b) a branch ruleset on main requires the status check
+# "OBS: claude-desktop - openSUSE_Leap_16.0/x86_64" (not the
+# "OBS SCM/CI Workflow Integration" check - that one goes green on dispatch,
+# before the build runs). No required reviews, or a solo bot PR never merges.
+#
+# No OBS credentials are needed here: the checksum comes from the apt index.
 
 on:
   schedule:
@@ -42,6 +48,7 @@ jobs:
           fi
 
       - name: Open pull request
+        id: cpr
         if: steps.bump.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
@@ -55,5 +62,14 @@ jobs:
             - `download_url` URL updated in `packaging/_service`
             - SHA256 is verified in `%prep` at build time
 
-            The OBS PR build (`home:hierynomus:ci`) will validate this before merge.
+            OBS test-builds this in a scratch project; merges on green.
           labels: automated, upstream-bump
+
+      - name: Enable auto-merge
+        if: steps.cpr.outputs.pull-request-number
+        run: |
+          gh pr merge --auto --squash "$PR" \
+            || echo "::warning::could not enable auto-merge - is 'Allow auto-merge' on and a required check set? merge PR #$PR by hand."
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ steps.cpr.outputs.pull-request-number }}

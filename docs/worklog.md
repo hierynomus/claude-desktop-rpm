@@ -289,4 +289,32 @@ scheme, so the `Release:` field + changelog `-N` are documentation only.
 - [ ] upstream-bump action: repo setting "Allow GitHub Actions to create
       and approve pull requests"
 
-_Webhook test 054104 — revert._
+---
+
+# 2026-09-03: webhooks verified
+
+**PR builds work.** Throwaway PR #1: `.obs/workflows.yml` `branch_package`
+created `home:hierynomus:ci:hierynomus:claude-desktop-rpm:PR-1` with scmsync
+pinned to the PR head commit, built it (publish disabled), and posted two
+status checks back to the PR ("OBS SCM/CI Workflow Integration" + "OBS:
+claude-desktop - openSUSE_Leap_16.0/x86_64") - both green.
+
+**upstream-bump action works.** `workflow_dispatch` run: green,
+`scripts/bump-version.sh` parsed Anthropic's apt index on the runner,
+reported `up to date`, PR step correctly skipped. GITHUB_TOKEN had
+`Contents: write` + `PullRequests: write` (the repo setting took).
+
+**Push webhook works** - the earlier "stuck" diagnosis was wrong. The
+runservice webhook (token 12231, `/trigger/webhook`) fires on every push
+to main (verified: token "Triggered at" updates within seconds; OBS
+creates a new source revision). It looked stuck only because every push
+after r6 touched `docs/` / `README.md`, not `packaging/` - and scmsync is
+`?subdir=packaging`, so obs-scm-bridge regenerates an identical source
+tree (`[info=<same-hash>]`) and nothing rebuilds. `_scmsync.obsinfo`
+`commit:` tracks the last commit that changed the subdir, so it also
+"looks" frozen on doc-only pushes. A push that changes `packaging/`
+rebuilds automatically.
+
+So: **two webhooks, both confirmed** - `/trigger/webhook?id=12231` (push)
+and `/trigger/workflow?id=12228` (pull_request). No manual
+`osc service remoterun` needed anymore.

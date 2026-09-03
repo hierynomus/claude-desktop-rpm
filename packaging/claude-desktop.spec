@@ -19,7 +19,8 @@
 
 Name:           claude-desktop
 Version:        1.40609.1
-Release:        6
+# OBS supplies the real release (lp160.N.M); 0 is the openSUSE convention.
+Release:        0
 Summary:        Desktop application for Claude (Chat, Cowork, Code)
 License:        MIT
 URL:            https://claude.ai
@@ -142,6 +143,9 @@ gtk-update-icon-cache -q /usr/share/icons 2>/dev/null || :
 update-desktop-database -q /usr/share/applications 2>/dev/null || :
 
 %changelog
+* Thu Sep 03 2026 jeroen <jeroen@hierynomus.com> - 1.40609.1-7
+- Release: 0 (openSUSE convention; OBS supplies the real release)
+
 * Thu Sep 03 2026 jeroen <jeroen@hierynomus.com> - 1.40609.1-6
 - Ship chrome-sandbox non-SUID (0755) and rely on the user-namespace
   sandbox (default on openSUSE). Drops the permissions.d drop-in,

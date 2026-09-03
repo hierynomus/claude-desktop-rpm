@@ -79,7 +79,7 @@ tmp=$(mktemp)
 awk -v new="$new" -v sha="$sha" '
   /^%global deb_sha256 / { print "%global deb_sha256 " sha; next }
   /^Version:[[:space:]]/  { print "Version:        " new; next }
-  /^Release:[[:space:]]/  { print "Release:        1"; next }
+  /^Release:[[:space:]]/  { print "Release:        0"; next }
   { print }
 ' "$SPEC" > "$tmp"
 

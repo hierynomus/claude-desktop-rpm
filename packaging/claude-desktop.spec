@@ -1,7 +1,8 @@
 #
 # spec file for package claude-desktop
 #
-# Copyright (c) 2026, jeroen
+# Copyright (c) 2026 Jeroen van Erp
+# Packaging under the MIT License (see LICENSE at the repo root).
 #
 # All license terms are preserved from the original .deb payload.
 # claude-desktop is Anthropic's proprietary desktop app (-> LicenseRef-

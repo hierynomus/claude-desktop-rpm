@@ -79,3 +79,9 @@ Re-enable userns (`user.max_user_namespaces`), don't chmod the helper.
   virtiofsd (Apache-2.0).
 - If a future `.deb` moves files or adds SUID helpers, update `%files` and
   revisit the sandbox note above.
+
+## License
+
+The packaging in this repo (spec, `_service`, scripts, CI config) is
+[MIT](LICENSE). It does not contain or redistribute Claude Desktop itself —
+the app is Anthropic's, fetched from their apt repo at build time.

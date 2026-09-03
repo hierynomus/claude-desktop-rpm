@@ -74,8 +74,8 @@ Re-enable userns (`user.max_user_namespaces`), don't chmod the helper.
 
 - Unsigned local builds: `sudo zypper --no-gpg-checks install ./dist/*.rpm`,
   or add the OBS repo (signed) as above.
-- `License: MIT` in the spec is a packaging placeholder — Claude Desktop is
-  Anthropic proprietary; the payload bundles Chromium (BSD-3-Clause) and
-  virtiofsd (Apache/BSD). Revisit before any non-home submission.
+- `License:` is `LicenseRef-SUSE-NonFree AND BSD-3-Clause AND Apache-2.0` —
+  Anthropic's app is proprietary; the payload bundles Chromium (BSD-3) and
+  virtiofsd (Apache-2.0).
 - If a future `.deb` moves files or adds SUID helpers, update `%files` and
   revisit the sandbox note above.

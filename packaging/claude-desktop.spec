@@ -4,10 +4,9 @@
 # Copyright (c) 2026, jeroen
 #
 # All license terms are preserved from the original .deb payload.
-# NOTE: claude-desktop is Anthropic's proprietary desktop app. The "MIT"
-# tag below is a packaging placeholder; the app ships LICENSES.chromium.html
-# (Chromium, BSD-3-Clause) plus Apache/BSD for the bundled virtiofsd.
-# Revisit the License tag before any external submission.
+# claude-desktop is Anthropic's proprietary desktop app (-> LicenseRef-
+# SUSE-NonFree); it also ships LICENSES.chromium.html (Chromium,
+# BSD-3-Clause) and Apache-2.0 for the bundled virtiofsd.
 #
 
 # SHA256 of the upstream .deb, taken from Anthropic's apt Packages index
@@ -21,7 +20,7 @@ Version:        1.40609.1
 # OBS supplies the real release (lp160.N.M); 0 is the openSUSE convention.
 Release:        0
 Summary:        Desktop application for Claude (Chat, Cowork, Code)
-License:        MIT
+License:        LicenseRef-SUSE-NonFree AND BSD-3-Clause AND Apache-2.0
 URL:            https://claude.ai
 # Fetched at build time by the _service download_url service (see _service).
 # Kept as a bare filename so OBS does not treat Source0 as a stored blob.
@@ -126,20 +125,16 @@ cp -a payload/usr/share/icons/hicolor %{buildroot}/usr/share/icons/
 # No SUID bit -> no permissions-framework drop-in, no rpmlint SUID review.
 chmod 0755 %{buildroot}/usr/lib/claude-desktop/chrome-sandbox
 
+# No %post/%postun: openSUSE runs update-desktop-database and
+# gtk-update-icon-cache from file triggers (desktop-file-utils, gtk3) on
+# /usr/share/applications and /usr/share/icons.
+
 %files
 %defattr(-,root,root)
 /usr/bin/claude-desktop
 /usr/lib/claude-desktop
 /usr/share/applications/com.anthropic.Claude.desktop
 /usr/share/icons/hicolor
-
-%post
-gtk-update-icon-cache -q /usr/share/icons 2>/dev/null || :
-update-desktop-database -q /usr/share/applications 2>/dev/null || :
-
-%postun
-gtk-update-icon-cache -q /usr/share/icons 2>/dev/null || :
-update-desktop-database -q /usr/share/applications 2>/dev/null || :
 
 %changelog
 * Thu Sep 03 2026 jeroen <jeroen@hierynomus.com> - 1.40609.1-0

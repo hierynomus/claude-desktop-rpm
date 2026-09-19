@@ -68,8 +68,15 @@ only executes `.obs/workflows.yml` steps, which are PR-only.
 
 ### 4. Two GitHub webhooks
 
-Repo **Settings → Webhooks → Add webhook**, twice. Content type
-`application/json`, SSL verification on, the token **string** in *Secret*:
+Repo **Settings → Webhooks → Add webhook**, twice. SSL verification on,
+the token **string** in *Secret*, and **Content type: `application/json`
+— not the GitHub default.** GitHub's "Add webhook" form defaults to
+`application/x-www-form-urlencoded`; it's easy to leave it there since
+everything else about the form looks right. `/trigger/workflow` rejects
+a form-encoded body outright (`403`, `X-Opensuse-Errorcode: invalid_token`
+— indistinguishable at a glance from a wrong secret). `/trigger/webhook`
+happens to tolerate form encoding, so if only the PR builds are broken,
+check this first before touching the secret.
 
 | Payload URL | Events |
 |---|---|
@@ -89,6 +96,26 @@ GitHub Actions to create and approve pull requests* (for `upstream-bump`).
 - Open a throwaway PR → an "OBS" status check appears and goes green.
 - Force a sync by hand if ever needed:
   `osc service remoterun home:hierynomus claude-desktop`
+
+## Troubleshooting
+
+- **PR webhook ping returns `403`, body
+  `<status code="invalid_token"><summary>No valid token found</summary>`.**
+  Reads like a bad secret but usually isn't — first confirm the token is
+  actually fine by replaying a self-signed request straight at OBS,
+  bypassing GitHub:
+  ```sh
+  secret=<WORKFLOW_TOKEN_STRING>
+  payload='{"zen":"test","repository":{"full_name":"hierynomus/claude-desktop-rpm"}}'
+  sig=$(printf '%s' "$payload" | openssl dgst -sha256 -hmac "$secret" | sed 's/^.* //')
+  curl -i -X POST "https://build.opensuse.org/trigger/workflow?id=<WORKFLOW_TOKEN_ID>" \
+    -H "Content-Type: application/json" -H "X-GitHub-Event: ping" \
+    -H "X-Hub-Signature-256: sha256=$sig" --data "$payload"
+  ```
+  A `200` here proves the token/project wiring is fine and the problem is
+  purely how GitHub is signing its own deliveries — almost always the
+  webhook's **Content type** left on `form` instead of `application/json`
+  (see step 4). Only chase the secret itself once this replay also fails.
 
 ## Install on a desktop
 

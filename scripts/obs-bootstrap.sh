@@ -70,15 +70,21 @@ cat <<'NEXT'
        osc token --create --operation workflow --scm-token <GITHUB_PAT>
 
   3. GitHub -> repo Settings -> Webhooks -> Add TWO webhooks
-     (content type application/json, SSL on; the token string is the Secret):
+     (SSL on; the token string is the Secret):
 
        a) Payload URL: https://build.opensuse.org/trigger/webhook?id=<RUNSERVICE_TOKEN_ID>
           Events:      Pushes
        b) Payload URL: https://build.opensuse.org/trigger/workflow?id=<WORKFLOW_TOKEN_ID>
           Events:      Pull requests
 
-     Why two: /trigger/workflow only runs .obs/workflows.yml (PR builds).
-     /trigger/webhook (runservice) re-pulls the scmsync source on push.
+     Content type: application/json for BOTH - GitHub's form default
+     ("Add webhook" pre-selects application/x-www-form-urlencoded) makes
+     /trigger/workflow fail with a 403 "invalid_token" that looks exactly
+     like a wrong secret. See docs/obs-setup.md#troubleshooting.
+
+     Why two endpoints: /trigger/workflow only runs .obs/workflows.yml
+     (PR builds). /trigger/webhook (runservice) re-pulls the scmsync
+     source on push.
 
   4. GitHub Settings -> Actions -> General -> Workflow permissions:
      enable "Allow GitHub Actions to create and approve pull requests".

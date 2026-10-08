@@ -3,7 +3,7 @@
 #
 # Does the parts that can be scripted:
 #   - ensures home:hierynomus:ci exists (PR branch target) with the same
-#     Leap 16.0 / x86_64 repo as home:hierynomus
+#     Leap 16.0 / x86_64 + aarch64 repo as home:hierynomus
 #   - points home:hierynomus/claude-desktop at this git repo via <scmsync>
 #   - creates the runservice token (push -> rebuild)
 #
@@ -33,6 +33,7 @@ else
   <repository name="openSUSE_Leap_16.0">
     <path project="openSUSE:Leap:16.0" repository="standard"/>
     <arch>x86_64</arch>
+    <arch>aarch64</arch>
   </repository>
 </project>
 XML

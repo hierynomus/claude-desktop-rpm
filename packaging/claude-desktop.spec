@@ -87,9 +87,16 @@ Requires:       gvfs
 Recommends:     libpulse0
 Recommends:     libappindicator3-1
 Recommends:     ca-certificates
+# Cowork VM stack, see
+# https://code.claude.com/docs/en/desktop-linux#cowork-requirements
 Suggests:       qemu
-Suggests:       ovmf
 Suggests:       virtiofsd
+%ifarch x86_64
+Suggests:       qemu-ovmf-x86_64
+%endif
+%ifarch aarch64
+Suggests:       qemu-uefi-aarch64
+%endif
 
 %description
 Claude desktop application for Linux (beta). Provides Chat, Cowork and

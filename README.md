@@ -13,9 +13,10 @@ sudo zypper refresh
 sudo zypper install claude-desktop
 ```
 
-x86_64 and aarch64 (the architectures upstream ships). Cowork additionally needs a
-KVM-capable host with `qemu` + `ovmf` + `virtiofsd` and your user in the
-`kvm` group.
+x86_64 and aarch64 (the architectures upstream ships). Cowork additionally
+needs a KVM-capable host with QEMU, UEFI firmware and `virtiofsd`, and your
+user in the `kvm` group; see Anthropic's
+[Cowork requirements](https://code.claude.com/docs/en/desktop-linux#cowork-requirements).
 
 ## How it works
 

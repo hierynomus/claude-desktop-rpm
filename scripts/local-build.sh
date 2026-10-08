@@ -15,7 +15,7 @@ SPEC="$REPO_ROOT/packaging/claude-desktop.spec"
 SERVICE="$REPO_ROOT/packaging/_service"
 OUTDIR="${1:-$REPO_ROOT/dist}"
 
-command -v rpmbuild >/dev/null || { echo "rpmbuild not found (zypper in rpm-build)"; exit 1; }
+command -v rpmbuild >/dev/null || { echo "rpmbuild not found (zypper in rpm-build / dnf install rpm-build)"; exit 1; }
 
 case "$(uname -m)" in
   x86_64)  deb_arch=amd64 ;;

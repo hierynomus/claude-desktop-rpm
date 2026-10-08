@@ -45,8 +45,8 @@ Source1:        claude-desktop_%{version}_arm64.deb
 ExclusiveArch:  x86_64 aarch64
 # Electron's chrome-sandbox is shipped NON-SUID (0755). Chromium prefers the
 # unprivileged-user-namespace sandbox and only falls back to the SUID helper
-# when userns is unavailable; openSUSE enables unprivileged userns by default
-# (podman-rootless, flatpak). The sandbox stays fully active - this is not
+# when userns is unavailable; openSUSE and Fedora enable unprivileged userns
+# by default (podman-rootless, flatpak). The sandbox stays fully active - this is not
 # --no-sandbox. Dropping the SUID bit also drops the SUSE permissions-
 # framework drop-in and rpmlint's SUID review flag. See README "Sandbox".
 BuildRequires:  fdupes
@@ -87,13 +87,24 @@ Recommends:     libappindicator3.so.1()(64bit)
 Recommends:     ca-certificates
 # Cowork VM stack, see
 # https://code.claude.com/docs/en/desktop-linux#cowork-requirements
-Suggests:       qemu
 Suggests:       virtiofsd
+%if 0%{?fedora}
+%ifarch x86_64
+Suggests:       qemu-system-x86-core
+Suggests:       edk2-ovmf
+%endif
+%ifarch aarch64
+Suggests:       qemu-system-aarch64-core
+Suggests:       edk2-aarch64
+%endif
+%else
+Suggests:       qemu
 %ifarch x86_64
 Suggests:       qemu-ovmf-x86_64
 %endif
 %ifarch aarch64
 Suggests:       qemu-uefi-aarch64
+%endif
 %endif
 
 %description
@@ -141,14 +152,15 @@ cp -a payload/usr/share/icons/hicolor %{buildroot}/usr/share/icons/
 %fdupes %{buildroot}
 
 # Ship chrome-sandbox NON-SUID (upstream .deb has it 4755). Chromium uses the
-# user-namespace sandbox when unprivileged userns is available (openSUSE
-# default) and never touches this helper; the SUID path is a fallback only.
+# user-namespace sandbox when unprivileged userns is available (openSUSE and
+# Fedora default) and never touches this helper; the SUID path is a fallback only.
 # No SUID bit -> no permissions-framework drop-in, no rpmlint SUID review.
 chmod 0755 %{buildroot}/usr/lib/claude-desktop/chrome-sandbox
 
-# No %%post/%%postun: openSUSE runs update-desktop-database and
-# gtk-update-icon-cache from file triggers (desktop-file-utils, gtk3) on
-# /usr/share/applications and /usr/share/icons.
+# No %%post/%%postun: openSUSE and Fedora run update-desktop-database and
+# gtk-update-icon-cache from file triggers (desktop-file-utils, and gtk3 on
+# openSUSE or hicolor-icon-theme on Fedora) on /usr/share/applications and
+# /usr/share/icons.
 
 %files
 %defattr(-,root,root)

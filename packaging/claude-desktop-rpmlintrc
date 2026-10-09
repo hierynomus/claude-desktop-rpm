@@ -17,9 +17,3 @@ addFilter(r"binary-or-shlib-calls-gethostbyname .*/claude-desktop")
 
 # No upstream testsuite to run in the build root - repackaged prebuilt app.
 addFilter(r"no-%check-section")
-
-# --- deliberate packaging choice -------------------------------------------
-# The explicit lib Requires are load-bearing: 6 of the 8 are not NEEDED of
-# any shipped ELF, so rpm's auto-dep scan misses them and a minimal install
-# is broken without them. Kept on purpose (see the Requires block in the spec).
-addFilter(r"explicit-lib-dependency (libgtk-3-0|libnotify4|libsecret-1-0|libuuid1|libXtst6|libdrm2|libgbm1|libxcb-dri3-0)")

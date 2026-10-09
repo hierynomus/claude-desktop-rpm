@@ -10,11 +10,24 @@
 # BSD-3-Clause) and Apache-2.0 for the bundled virtiofsd.
 #
 
-# SHA256 of the upstream .deb, taken from Anthropic's apt Packages index
-# (dists/stable/main/binary-amd64/Packages, field "SHA256:"). Bumped in
+# SHA256 of each upstream .deb, taken from Anthropic's apt Packages index
+# (dists/stable/main/binary-<arch>/Packages, field "SHA256:"). Bumped in
 # lockstep with Version by scripts/bump-version.sh. Verified in %%prep so a
 # changed-out-from-under-us payload fails the build instead of shipping.
-%global deb_sha256 eb86fda7c8073117b29f2e9022da5ffd398b8f125e331d7d5956e9ba0e3bd6d4
+%global deb_sha256_amd64 eb86fda7c8073117b29f2e9022da5ffd398b8f125e331d7d5956e9ba0e3bd6d4
+%global deb_sha256_arm64 06797cc89cf369809235a4095b877af05931e5df48bc9907d318fb513ae75b05
+
+# Debian and Node.js names of the architecture being built.
+%ifarch x86_64
+%global deb_arch   amd64
+%global node_arch  x64
+%global deb_sha256 %{deb_sha256_amd64}
+%endif
+%ifarch aarch64
+%global deb_arch   arm64
+%global node_arch  arm64
+%global deb_sha256 %{deb_sha256_arm64}
+%endif
 
 Name:           claude-desktop
 Version:        2.31226.0
@@ -23,72 +36,90 @@ Release:        0
 Summary:        Desktop application for Claude (Chat, Cowork, Code)
 License:        LicenseRef-SUSE-NonFree AND BSD-3-Clause AND Apache-2.0
 URL:            https://claude.ai
-# Fetched at build time by the _service download_url service (see _service).
-# Kept as a bare filename so OBS does not treat Source0 as a stored blob.
+# Fetched at build time by the _service download_url services (see _service).
+# Kept as bare filenames so OBS does not treat the sources as stored blobs.
+# Each build unpacks only the .deb of its own architecture.
 Source0:        claude-desktop_%{version}_amd64.deb
+Source1:        claude-desktop_%{version}_arm64.deb
 
-ExclusiveArch:  x86_64
+ExclusiveArch:  x86_64 aarch64
 # Electron's chrome-sandbox is shipped NON-SUID (0755). Chromium prefers the
 # unprivileged-user-namespace sandbox and only falls back to the SUID helper
-# when userns is unavailable; openSUSE enables unprivileged userns by default
-# (podman-rootless, flatpak). The sandbox stays fully active - this is not
+# when userns is unavailable; openSUSE and Fedora enable unprivileged userns
+# by default (podman-rootless, flatpak). The sandbox stays fully active - this is not
 # --no-sandbox. Dropping the SUID bit also drops the SUSE permissions-
 # framework drop-in and rpmlint's SUID review flag. See README "Sandbox".
 BuildRequires:  fdupes
 BuildRequires:  desktop-file-utils
 
-# Mapping of the .deb's Depends onto openSUSE Leap 16 packages:
-#   libgtk-3-0        -> libgtk-3-0
-#   libnotify4        -> libnotify4
-#   libnss3           -> mozilla-nss
+# Mapping of the .deb's Depends onto RPM dependencies. Shared libraries are
+# required by SONAME, never by package name, so the same lines resolve on
+# every RPM distribution regardless of how it names its library packages.
+#
+# Libraries that a shipped ELF links (DT_NEEDED) are required automatically
+# by rpmbuild's automatic dependency generator. The ones below are in the
+# .deb's Depends but not DT_NEEDED by any shipped ELF (loaded at runtime with
+# dlopen(), or needed indirectly), so they are required explicitly:
+#   libnotify4        -> libnotify.so.4
+#   libsecret-1-0     -> libsecret-1.so.0
+#   libxcb-dri3-0     -> libxcb-dri3.so.0
+#   libdrm2           -> libdrm.so.2
+#   libxtst6          -> libXtst.so.6
+#   libuuid1          -> libuuid.so.1
+# Not libraries, so required by package name:
 #   xdg-utils         -> xdg-utils
-#   libatspi2.0-0     -> at-spi2-core
-#   libdrm2           -> libdrm2
-#   libgbm1           -> libgbm1
-#   libxcb-dri3-0     -> libxcb-dri3-0
-#   libsecret-1-0     -> libsecret-1-0
-#   libc6 (>= 2.34)   -> glibc (always present)
-#   libxtst6          -> libXtst6
-#   libuuid1          -> libuuid1
 #   xdg-desktop-portal-> xdg-desktop-portal
 #   trash alt group   -> gvfs (gvfs-trash) or kde-cli-tools6 (KIO trash);
 #                        keep gvfs as the portable one
-Requires:       glibc
-Requires:       libgtk-3-0
-Requires:       libnotify4
-Requires:       mozilla-nss
+Requires:       libnotify.so.4()(64bit)
+Requires:       libsecret-1.so.0()(64bit)
+Requires:       libxcb-dri3.so.0()(64bit)
+Requires:       libdrm.so.2()(64bit)
+Requires:       libXtst.so.6()(64bit)
+Requires:       libuuid.so.1()(64bit)
 Requires:       xdg-utils
-Requires:       at-spi2-core
-Requires:       libdrm2
-Requires:       libgbm1
-Requires:       libxcb-dri3-0
-Requires:       libsecret-1-0
-Requires:       libXtst6
-Requires:       libuuid1
 Requires:       xdg-desktop-portal
 Requires:       gvfs
 
 # Deb Recommends (audio + app indicator + certs + Cowork VM stack)
-Recommends:     libpulse0
-Recommends:     libappindicator3-1
+Recommends:     libpulse.so.0()(64bit)
+Recommends:     libappindicator3.so.1()(64bit)
 Recommends:     ca-certificates
-Suggests:       qemu
-Suggests:       ovmf
+# Cowork VM stack, see
+# https://code.claude.com/docs/en/desktop-linux#cowork-requirements
 Suggests:       virtiofsd
+%if 0%{?fedora}
+%ifarch x86_64
+Suggests:       qemu-system-x86-core
+Suggests:       edk2-ovmf
+%endif
+%ifarch aarch64
+Suggests:       qemu-system-aarch64-core
+Suggests:       edk2-aarch64
+%endif
+%else
+Suggests:       qemu
+%ifarch x86_64
+Suggests:       qemu-ovmf-x86_64
+%endif
+%ifarch aarch64
+Suggests:       qemu-uefi-aarch64
+%endif
+%endif
 
 %description
 Claude desktop application for Linux (beta). Provides Chat, Cowork and
-Claude Code in a native app. Upstream only ships an amd64/.deb build;
-this package repackages the official .deb payload for RPM systems.
+Claude Code in a native app. Upstream only ships .deb builds (amd64 and
+arm64); this package repackages the official .deb payload for RPM systems.
 Cowork additionally needs a KVM-capable machine, QEMU, OVMF and
 virtiofsd, plus the user in the KVM group.
 
 %prep
 # Integrity check: the .deb is fetched over TLS by the download_url service;
 # pin it to the checksum Anthropic publishes in their apt index as well.
-echo '%{deb_sha256}  %{SOURCE0}' | sha256sum -c -
+echo '%{deb_sha256}  %{_sourcedir}/claude-desktop_%{version}_%{deb_arch}.deb' | sha256sum -c -
 # The .deb is an ar archive: debian-binary, control.tar.xz, data.tar.xz
-ar x %{SOURCE0}
+ar x %{_sourcedir}/claude-desktop_%{version}_%{deb_arch}.deb
 mkdir -p payload
 tar -xJf data.tar.xz -C payload
 
@@ -96,7 +127,7 @@ tar -xJf data.tar.xz -C payload
 # Nothing to compile: self-contained Electron payload.
 # Strip the two shipped objects that still carry debug info.
 strip --strip-unneeded payload/usr/lib/claude-desktop/libvulkan.so.1
-strip --strip-unneeded payload/usr/lib/claude-desktop/resources/app.asar.unpacked/node_modules/node-pty/prebuilds/linux-x64/pty.node
+strip --strip-unneeded payload/usr/lib/claude-desktop/resources/app.asar.unpacked/node_modules/node-pty/prebuilds/linux-%{node_arch}/pty.node
 
 %install
 install -dm 0755 %{buildroot}/usr/lib
@@ -121,14 +152,15 @@ cp -a payload/usr/share/icons/hicolor %{buildroot}/usr/share/icons/
 %fdupes %{buildroot}
 
 # Ship chrome-sandbox NON-SUID (upstream .deb has it 4755). Chromium uses the
-# user-namespace sandbox when unprivileged userns is available (openSUSE
-# default) and never touches this helper; the SUID path is a fallback only.
+# user-namespace sandbox when unprivileged userns is available (openSUSE and
+# Fedora default) and never touches this helper; the SUID path is a fallback only.
 # No SUID bit -> no permissions-framework drop-in, no rpmlint SUID review.
 chmod 0755 %{buildroot}/usr/lib/claude-desktop/chrome-sandbox
 
-# No %%post/%%postun: openSUSE runs update-desktop-database and
-# gtk-update-icon-cache from file triggers (desktop-file-utils, gtk3) on
-# /usr/share/applications and /usr/share/icons.
+# No %%post/%%postun: openSUSE and Fedora run update-desktop-database and
+# gtk-update-icon-cache from file triggers (desktop-file-utils, and gtk3 on
+# openSUSE or hicolor-icon-theme on Fedora) on /usr/share/applications and
+# /usr/share/icons.
 
 %files
 %defattr(-,root,root)

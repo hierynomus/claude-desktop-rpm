@@ -1,11 +1,13 @@
-# claude-desktop for openSUSE
+# claude-desktop for openSUSE and Fedora
 
 Repackages Anthropic's official [Claude Desktop](https://claude.ai) Linux
-beta (shipped only as an `amd64` `.deb`) into a native **RPM for openSUSE**,
-built and GPG-signed by the [Open Build Service](https://build.opensuse.org)
-project [`home:hierynomus`](https://build.opensuse.org/package/show/home:hierynomus/claude-desktop).
+beta (shipped only as `amd64` and `arm64` `.deb`s) into a native **RPM for
+openSUSE and Fedora**, built and GPG-signed by the
+[Open Build Service](https://build.opensuse.org) project [`home:hierynomus`](https://build.opensuse.org/package/show/home:hierynomus/claude-desktop).
 
 ## Install
+
+openSUSE Leap 16.0:
 
 ```sh
 sudo zypper ar https://download.opensuse.org/repositories/home:hierynomus/openSUSE_Leap_16.0/home:hierynomus.repo
@@ -13,23 +15,33 @@ sudo zypper refresh
 sudo zypper install claude-desktop
 ```
 
-x86_64 only (upstream ships no other arch). Cowork additionally needs a
-KVM-capable host with `qemu` + `ovmf` + `virtiofsd` and your user in the
-`kvm` group.
+Fedora 44:
+
+```sh
+sudo dnf config-manager addrepo --from-repofile=https://download.opensuse.org/repositories/home:hierynomus/Fedora_44/home:hierynomus.repo
+sudo dnf install claude-desktop
+```
+
+x86_64 and aarch64 (the architectures upstream ships). Cowork additionally
+needs a KVM-capable host with QEMU, UEFI firmware and `virtiofsd`, and your
+user in the `kvm` group; see Anthropic's
+[Cowork requirements](https://code.claude.com/docs/en/desktop-linux#cowork-requirements).
+The package suggests the matching QEMU and firmware packages for each
+distribution.
 
 ## How it works
 
 The package source **is this repo**. OBS mirrors `packaging/` via
 `<scmsync>` and rebuilds when a push changes it. The 166 MB `.deb` is never
-committed: `packaging/_service` fetches it at build time and
-`packaging/claude-desktop.spec` verifies its SHA256 in `%prep` against the
-value in Anthropic's apt index.
+committed: `packaging/_service` fetches one per architecture at build time
+and `packaging/claude-desktop.spec` verifies the SHA256 of the one it unpacks
+in `%prep` against the value in Anthropic's apt index.
 
 | path | what |
 |---|---|
 | `packaging/claude-desktop.spec` | the recipe — dependency mapping, `%prep` checksum, non-SUID sandbox |
 | `packaging/claude-desktop-rpmlintrc` | rpmlint filters for upstream-inherent / deliberate findings |
-| `packaging/_service` | `download_url` for the upstream `.deb` |
+| `packaging/_service` | `download_url` for the upstream `.deb`s |
 | `.obs/workflows.yml` | OBS SCM/CI — build each PR in a scratch project, report status back |
 | `.github/workflows/upstream-bump.yml` | daily — open a PR when Anthropic publishes a newer build |
 | `scripts/bump-version.sh` | rewrite `packaging/` from the apt index (no `.deb` download) |
@@ -40,14 +52,14 @@ value in Anthropic's apt index.
 ## Update flow
 
 1. `upstream-bump.yml` (or `scripts/bump-version.sh` by hand) opens a PR
-   bumping `Version` + `%global deb_sha256` + the `_service` URL.
+   bumping `Version` + `%global deb_sha256_<arch>` + the `_service` URLs.
 2. OBS test-builds the PR; the status check lands on it.
 3. Merge → OBS re-syncs and rebuilds `home:hierynomus/claude-desktop`.
 
 ## Local build
 
 ```sh
-scripts/local-build.sh        # -> ./dist/claude-desktop-*.x86_64.rpm
+scripts/local-build.sh        # -> ./dist/claude-desktop-*.<host arch>.rpm
 ```
 
 Needs `rpm-build`. Same `%prep` checksum gate as OBS.
@@ -62,9 +74,10 @@ create a GitHub PAT and the `workflow` token, then add two GitHub webhooks
 
 `chrome-sandbox` is shipped **non-SUID** (upstream's `.deb` sets it `4755`).
 Chromium prefers the unprivileged **user-namespace sandbox** and only uses
-the SUID helper as a fallback; openSUSE enables unprivileged user namespaces
-by default (podman-rootless, flatpak rely on it), so the sandbox is fully
-active. This is *not* `--no-sandbox`, and it's verified working on openSUSE.
+the SUID helper as a fallback; openSUSE and Fedora enable unprivileged user
+namespaces by default (podman-rootless, flatpak rely on it), so the sandbox is
+fully active. This is *not* `--no-sandbox`, and it's verified working on
+openSUSE.
 
 If a host has unprivileged userns disabled, the app fails to start with
 `The SUID sandbox helper binary was found, but is not configured correctly`.
@@ -72,8 +85,9 @@ Re-enable userns (`user.max_user_namespaces`), don't chmod the helper.
 
 ## Notes
 
-- Unsigned local builds: `sudo zypper --no-gpg-checks install ./dist/*.rpm`,
-  or add the OBS repo (signed) as above.
+- Unsigned local builds: `sudo zypper --no-gpg-checks install ./dist/*.rpm`
+  on openSUSE, `sudo dnf install --nogpgcheck ./dist/*.rpm` on Fedora, or add
+  the OBS repo (signed) as above.
 - `License:` is `LicenseRef-SUSE-NonFree AND BSD-3-Clause AND Apache-2.0` —
   Anthropic's app is proprietary; the payload bundles Chromium (BSD-3) and
   virtiofsd (Apache-2.0).

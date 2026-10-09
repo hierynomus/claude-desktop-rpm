@@ -3,7 +3,7 @@
 #
 # Does the parts that can be scripted:
 #   - ensures home:hierynomus:ci exists (PR branch target) with the same
-#     Leap 16.0 / x86_64 repo as home:hierynomus
+#     Leap 16.0 and Fedora 44 / x86_64 + aarch64 repos as home:hierynomus
 #   - points home:hierynomus/claude-desktop at this git repo via <scmsync>
 #   - creates the runservice token (push -> rebuild)
 #
@@ -33,6 +33,12 @@ else
   <repository name="openSUSE_Leap_16.0">
     <path project="openSUSE:Leap:16.0" repository="standard"/>
     <arch>x86_64</arch>
+    <arch>aarch64</arch>
+  </repository>
+  <repository name="Fedora_44">
+    <path project="Fedora:44" repository="update"/>
+    <arch>x86_64</arch>
+    <arch>aarch64</arch>
   </repository>
 </project>
 XML
@@ -48,7 +54,7 @@ else
   osc meta pkg "$PROJ" "$PKG" -F - <<XML
 <package name="$PKG" project="$PROJ">
   <title>Desktop application for Claude.ai (Chat, Cowork, Code)</title>
-  <description>Repackage of Anthropic's official Linux .deb as a native RPM for openSUSE. Source: $GIT_URL</description>
+  <description>Repackage of Anthropic's official Linux .deb as a native RPM for openSUSE and Fedora. Source: $GIT_URL</description>
   <scmsync>$GIT_URL</scmsync>
 </package>
 XML

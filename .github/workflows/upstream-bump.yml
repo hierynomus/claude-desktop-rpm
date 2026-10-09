@@ -58,8 +58,8 @@ jobs:
           body: |
             Automated bump from Anthropic's apt index.
 
-            - `Version` and `%global deb_sha256` updated in `packaging/claude-desktop.spec`
-            - `download_url` URL updated in `packaging/_service`
+            - `Version` and `%global deb_sha256_<arch>` updated in `packaging/claude-desktop.spec`
+            - `download_url` URLs updated in `packaging/_service`
             - SHA256 is verified in `%prep` at build time
 
             OBS test-builds this in a scratch project; merges on green.

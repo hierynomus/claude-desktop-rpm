@@ -37,40 +37,38 @@ ExclusiveArch:  x86_64
 BuildRequires:  fdupes
 BuildRequires:  desktop-file-utils
 
-# Mapping of the .deb's Depends onto openSUSE Leap 16 packages:
-#   libgtk-3-0        -> libgtk-3-0
-#   libnotify4        -> libnotify4
-#   libnss3           -> mozilla-nss
+# Mapping of the .deb's Depends onto RPM dependencies. Shared libraries are
+# required by SONAME, never by package name, so the same lines resolve on
+# every RPM distribution regardless of how it names its library packages.
+#
+# Libraries that a shipped ELF links (DT_NEEDED) are required automatically
+# by rpmbuild's automatic dependency generator. The ones below are in the
+# .deb's Depends but not DT_NEEDED by any shipped ELF (loaded at runtime with
+# dlopen(), or needed indirectly), so they are required explicitly:
+#   libnotify4        -> libnotify.so.4
+#   libsecret-1-0     -> libsecret-1.so.0
+#   libxcb-dri3-0     -> libxcb-dri3.so.0
+#   libdrm2           -> libdrm.so.2
+#   libxtst6          -> libXtst.so.6
+#   libuuid1          -> libuuid.so.1
+# Not libraries, so required by package name:
 #   xdg-utils         -> xdg-utils
-#   libatspi2.0-0     -> at-spi2-core
-#   libdrm2           -> libdrm2
-#   libgbm1           -> libgbm1
-#   libxcb-dri3-0     -> libxcb-dri3-0
-#   libsecret-1-0     -> libsecret-1-0
-#   libc6 (>= 2.34)   -> glibc (always present)
-#   libxtst6          -> libXtst6
-#   libuuid1          -> libuuid1
 #   xdg-desktop-portal-> xdg-desktop-portal
 #   trash alt group   -> gvfs (gvfs-trash) or kde-cli-tools6 (KIO trash);
 #                        keep gvfs as the portable one
-Requires:       glibc
-Requires:       libgtk-3-0
-Requires:       libnotify4
-Requires:       mozilla-nss
+Requires:       libnotify.so.4()(64bit)
+Requires:       libsecret-1.so.0()(64bit)
+Requires:       libxcb-dri3.so.0()(64bit)
+Requires:       libdrm.so.2()(64bit)
+Requires:       libXtst.so.6()(64bit)
+Requires:       libuuid.so.1()(64bit)
 Requires:       xdg-utils
-Requires:       at-spi2-core
-Requires:       libdrm2
-Requires:       libgbm1
-Requires:       libxcb-dri3-0
-Requires:       libsecret-1-0
-Requires:       libXtst6
-Requires:       libuuid1
 Requires:       xdg-desktop-portal
 Requires:       gvfs
 
 # Deb Recommends (audio + app indicator + certs + Cowork VM stack)
-Recommends:     libpulse0
-Recommends:     libappindicator3-1
+Recommends:     libpulse.so.0()(64bit)
+Recommends:     libappindicator3.so.1()(64bit)
 Recommends:     ca-certificates
 Suggests:       qemu
 Suggests:       ovmf

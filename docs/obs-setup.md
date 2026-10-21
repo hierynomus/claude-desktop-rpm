@@ -21,7 +21,7 @@ Done once; after that a push to `main` rebuilds and PRs get test-built.
   ships a newer build. Needs no OBS credentials.
 
 ```
-Anthropic apt index ─(daily cron)→ bump PR ─→ OBS PR build (status checks)
+Anthropic apt index ─(hourly cron)→ bump PR ─→ OBS PR build (status checks)
                                       │
                                     merge ─→ push webhook ─→ rebuild ─→
                                       download.opensuse.org/repositories/home:hierynomus/

@@ -14,10 +14,10 @@
 # (dists/stable/main/binary-amd64/Packages, field "SHA256:"). Bumped in
 # lockstep with Version by scripts/bump-version.sh. Verified in %%prep so a
 # changed-out-from-under-us payload fails the build instead of shipping.
-%global deb_sha256 3810733e93792f70eae921175d13e53d1cc6bdce9dc23117f0588087521a64bc
+%global deb_sha256 1ad996e8caab05c9b374646051c40cb6bb9d84f371756f15b8d3728897515a97
 
 Name:           claude-desktop
-Version:        4.16336.0
+Version:        4.23118.0
 # OBS supplies the real release (lp160.N.M); 0 is the openSUSE convention.
 Release:        0
 Summary:        Desktop application for Claude (Chat, Cowork, Code)
@@ -138,6 +138,9 @@ chmod 0755 %{buildroot}/usr/lib/claude-desktop/chrome-sandbox
 /usr/share/icons/hicolor
 
 %changelog
+* Fri Nov 06 2026 jeroen <jeroen@hierynomus.com> - 4.23118.0-0
+- Update to upstream 4.23118.0
+
 * Wed Nov 04 2026 jeroen <jeroen@hierynomus.com> - 4.16336.0-0
 - Update to upstream 4.16336.0
 

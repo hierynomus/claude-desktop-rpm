@@ -16,6 +16,12 @@
 # changed-out-from-under-us payload fails the build instead of shipping.
 %global deb_sha256 1ad996e8caab05c9b374646051c40cb6bb9d84f371756f15b8d3728897515a97
 
+# The app bundles private copies of Chromium's libraries in its own
+# directory. Do not advertise them as system-wide Provides, and do not
+# require them from the system, where the bundled copies satisfy them.
+%global __provides_exclude_from ^/usr/lib/claude-desktop/.*$
+%global __requires_exclude ^(libffmpeg\\.so|libEGL\\.so|libGLESv2\\.so|libvk_swiftshader\\.so|libvulkan\\.so).*$
+
 Name:           claude-desktop
 Version:        4.23118.0
 # OBS supplies the real release (lp160.N.M); 0 is the openSUSE convention.

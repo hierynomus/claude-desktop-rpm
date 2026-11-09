@@ -31,7 +31,7 @@ value in Anthropic's apt index.
 | `packaging/claude-desktop-rpmlintrc` | rpmlint filters for upstream-inherent / deliberate findings |
 | `packaging/_service` | `download_url` for the upstream `.deb` |
 | `.obs/workflows.yml` | OBS SCM/CI — build each PR in a scratch project, report status back |
-| `.github/workflows/upstream-bump.yml` | daily — open a PR when Anthropic publishes a newer build |
+| `.github/workflows/upstream-bump.yml` | hourly — open a PR when Anthropic publishes a newer build |
 | `scripts/bump-version.sh` | rewrite `packaging/` from the apt index (no `.deb` download) |
 | `scripts/local-build.sh` | fetch the `.deb` + `rpmbuild -bb` locally, to test before OBS |
 | `scripts/obs-bootstrap.sh` | one-time OBS setup (`:ci` project, `<scmsync>`, runservice token) |
